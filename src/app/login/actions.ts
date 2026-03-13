@@ -5,18 +5,21 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/utils/supabase/server'
 
 export async function login(formData: FormData) {
+  const supabase = await createClient()
+
   const data = {
     email: formData.get('email') as string,
     password: formData.get('password') as string,
   }
 
-  // MOCK AUTHENTICATION
-  if (data.email === 'admin@marnak.com' && data.password === 'marnak2026') {
-    revalidatePath('/', 'layout')
-    redirect('/dashboard')
-  } else {
-    redirect('/login?error=Invalid credentials')
+  const { error } = await supabase.auth.signInWithPassword(data)
+
+  if (error) {
+    redirect('/login?error=Credenciales incorrectas')
   }
+
+  revalidatePath('/', 'layout')
+  redirect('/dashboard')
 }
 
 export async function signup(formData: FormData) {
@@ -30,7 +33,7 @@ export async function signup(formData: FormData) {
   const { error } = await supabase.auth.signUp(data)
 
   if (error) {
-    redirect('/login?error=Could not authenticate user')
+    redirect('/login?error=No se pudo crear la cuenta')
   }
 
   revalidatePath('/', 'layout')
