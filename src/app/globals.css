@@ -36,3 +36,15 @@ body {
   color: var(--foreground);
   font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
 }
+
+/* Ensure all form inputs have clearly readable dark text */
+input,
+select,
+textarea {
+  color: #0f172a !important;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #94a3b8;
+}
