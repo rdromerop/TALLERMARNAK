@@ -8,6 +8,7 @@ interface CartItem {
   id: string; // This will be the inventory_id
   name: string;
   price: number;
+  cost_price: number;
   quantity: number;
   stock: number;
 }
@@ -70,7 +71,8 @@ export default function SalesPage() {
       return [...prev, { 
         id: product.id, 
         name: product.name, 
-        price: product.price, 
+        price: product.price,
+        cost_price: product.cost_price || 0,
         quantity: 1,
         stock: product.stock
       }];
@@ -112,13 +114,18 @@ export default function SalesPage() {
         status: 'Pagado'
       };
 
-      const saleItems = cart.map(item => ({
-        item_name: item.name,
-        quantity: item.quantity,
-        price: item.price,
-        subtotal: item.price * item.quantity,
-        inventory_id: item.id // Used for stock decrement
-      }));
+      const saleItems = cart.map(item => {
+        const itemProfit = (item.price - item.cost_price) * item.quantity;
+        return {
+          item_name: item.name,
+          quantity: item.quantity,
+          price: item.price,
+          unit_cost: item.cost_price,
+          profit: itemProfit,
+          subtotal: item.price * item.quantity,
+          inventory_id: item.id // Used for stock decrement
+        };
+      });
 
       await createSale(sale, saleItems);
       
@@ -323,6 +330,7 @@ export default function SalesPage() {
                 <th className="px-6 py-4 font-semibold tracking-wider">Moto</th>
                 <th className="px-6 py-4 font-semibold tracking-wider">Hora / Fecha</th>
                 <th className="px-6 py-4 font-semibold tracking-wider text-right">Monto (COP)</th>
+                <th className="px-6 py-4 font-semibold tracking-wider text-emerald-600 text-right">Ganancia</th>
                 <th className="px-6 py-4 font-semibold tracking-wider">Estado</th>
                 <th className="px-6 py-4 font-semibold tracking-wider text-right">Artículos</th>
               </tr>
@@ -355,6 +363,9 @@ export default function SalesPage() {
                     <td className="px-6 py-4 font-black text-slate-900 text-right">
                       $ {Number(sale.total_amount).toLocaleString('es-CO')}
                     </td>
+                    <td className="px-6 py-4 font-bold text-emerald-600 text-right">
+                      $ {sale.sale_items?.reduce((sum: number, item: any) => sum + Number(item.profit || 0), 0).toLocaleString('es-CO')}
+                    </td>
                     <td className="px-6 py-4">
                       <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold ${
                         sale.status === 'Pagado' 
@@ -382,9 +393,20 @@ export default function SalesPage() {
         
         <div className="p-4 border-t border-slate-100 bg-slate-50/30 flex items-center justify-between text-sm text-slate-500 font-medium">
            <span>Total Hoy: <span className="text-slate-900 font-bold">{todaySales.length} ventas</span></span>
-           <span className="text-blue-600 font-black text-lg">
-             $ {todaySales.reduce((sum, s) => sum + Number(s.total_amount), 0).toLocaleString('es-CO')}
-           </span>
+           <div className="flex items-center gap-6">
+              <span className="flex flex-col items-end">
+                <span className="text-xs uppercase tracking-wider">Ganancia</span>
+                <span className="text-emerald-600 font-bold text-base">
+                  $ {todaySales.reduce((sum, s) => sum + (s.sale_items?.reduce((itemSum: number, item: any) => itemSum + Number(item.profit || 0), 0) || 0), 0).toLocaleString('es-CO')}
+                </span>
+              </span>
+              <span className="flex flex-col items-end">
+                <span className="text-xs uppercase tracking-wider">Monto Total</span>
+                <span className="text-blue-600 font-black text-lg">
+                  $ {todaySales.reduce((sum, s) => sum + Number(s.total_amount), 0).toLocaleString('es-CO')}
+                </span>
+              </span>
+           </div>
         </div>
       </div>
 

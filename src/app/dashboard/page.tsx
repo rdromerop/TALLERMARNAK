@@ -38,6 +38,7 @@ export default function DashboardPage() {
       // Sales Calculations
       let salesToday = 0;
       let salesMonth = 0;
+      let profitMonth = 0;
       sales.forEach((sale: any) => {
         const saleDate = new Date(sale.date);
         const saleDateStr = saleDate.toISOString().split('T')[0];
@@ -48,6 +49,8 @@ export default function DashboardPage() {
         
         if (saleDate.getMonth() === currentMonth && saleDate.getFullYear() === currentYear) {
           salesMonth += Number(sale.total_amount);
+          const saleProfit = sale.sale_items?.reduce((sum: number, item: any) => sum + Number(item.profit || 0), 0) || 0;
+          profitMonth += saleProfit;
         }
       });
 
@@ -74,7 +77,7 @@ export default function DashboardPage() {
         salesToday,
         salesMonth,
         expensesMonth,
-        netProfitMonth: salesMonth - expensesMonth,
+        netProfitMonth: profitMonth - expensesMonth,
         activeRepairs: repairsCountToday,
         stockAlerts
       });

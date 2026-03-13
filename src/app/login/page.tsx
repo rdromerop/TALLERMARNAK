@@ -20,7 +20,7 @@ export default function LoginPage() {
               name="email"
               type="email"
               required
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
+              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors text-slate-900 bg-white"
               placeholder="admin@marnak.com"
             />
           </div>
@@ -31,7 +31,7 @@ export default function LoginPage() {
               name="password"
               type="password"
               required
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
+              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors text-slate-900 bg-white"
               placeholder="••••••••"
             />
           </div>

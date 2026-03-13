@@ -15,6 +15,7 @@ export default function InventoryPage() {
   const [sku, setSku] = useState('');
   const [category, setCategory] = useState('');
   const [price, setPrice] = useState('');
+  const [costPrice, setCostPrice] = useState('');
   const [quantity, setQuantity] = useState(1);
 
   useEffect(() => {
@@ -44,6 +45,7 @@ export default function InventoryPage() {
         sku,
         category,
         price: Number(price),
+        cost_price: Number(costPrice) || 0,
         stock: Number(quantity)
       };
 
@@ -53,6 +55,7 @@ export default function InventoryPage() {
       setSku('');
       setCategory('');
       setPrice('');
+      setCostPrice('');
       setQuantity(1);
       setIsModalOpen(false);
       fetchInventory();
@@ -267,7 +270,22 @@ export default function InventoryPage() {
                 </div>
                 
                 <div className="space-y-2">
-                  <label htmlFor="price" className="block text-sm font-medium text-slate-700">Precio (COP)</label>
+                  <label htmlFor="costPrice" className="block text-sm font-medium text-slate-700">Precio de Compra (COP)</label>
+                  <div className="relative">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 text-sm">$</span>
+                    <input 
+                      id="costPrice"
+                      type="number" 
+                      value={costPrice}
+                      onChange={(e) => setCostPrice(e.target.value)}
+                      placeholder="0"
+                      className="w-full pl-8 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white transition-all"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label htmlFor="price" className="block text-sm font-medium text-slate-700">Precio de Venta (COP)</label>
                   <div className="relative">
                     <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 text-sm">$</span>
                     <input 
