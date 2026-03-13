@@ -12,7 +12,8 @@ export default function DashboardPage() {
     netProfitMonth: 0,
     expensesMonth: 0,
     activeRepairs: 0,
-    stockAlerts: 0
+    stockAlerts: 0,
+    lowStockItems: [] as any[]
   });
   const [isLoading, setIsLoading] = useState(true);
 
@@ -64,7 +65,8 @@ export default function DashboardPage() {
       });
 
       // Inventory Alerts
-      const stockAlerts = inventory.filter((item: any) => item.stock <= 5).length;
+      const lowStockItems = inventory.filter((item: any) => item.stock <= 5);
+      const stockAlerts = lowStockItems.length;
 
       // Mechanics / Repairs Today
       let repairsCountToday = 0;
@@ -79,7 +81,8 @@ export default function DashboardPage() {
         expensesMonth,
         netProfitMonth: profitMonth - expensesMonth,
         activeRepairs: repairsCountToday,
-        stockAlerts
+        stockAlerts,
+        lowStockItems
       });
 
     } catch (error) {
@@ -160,6 +163,25 @@ export default function DashboardPage() {
           icon={AlertTriangle}
           iconBg="bg-orange-100"
           iconColor="text-orange-600"
+          tooltip={
+            metrics.lowStockItems.length > 0 ? (
+              <div className="flex flex-col gap-1.5 py-1 min-w-[180px]">
+                <span className="font-bold text-slate-300 border-b border-slate-700 pb-1 mb-1">
+                  Artículos bajos/agotados:
+                </span>
+                <ul className="max-h-[200px] overflow-y-auto space-y-1 pr-2 custom-scrollbar">
+                  {metrics.lowStockItems.map((item, idx) => (
+                    <li key={idx} className="flex justify-between items-center text-xs">
+                      <span className="truncate max-w-[120px]" title={item.name}>{item.name}</span>
+                      <span className={`font-mono font-bold ml-2 ${item.stock === 0 ? 'text-red-400' : 'text-orange-400'}`}>
+                        {item.stock}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : undefined
+          }
         />
       </div>
 
