@@ -31,9 +31,7 @@ export function Sidebar() {
         <h1 className="text-2xl font-black tracking-[0.2em] text-brand-gold uppercase">
           MARNAK
         </h1>
-        <p className="text-[10px] uppercase font-bold text-slate-500 tracking-widest mt-1">
-          Llantas y Taller
-        </p>
+
       </div>
       
       <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
