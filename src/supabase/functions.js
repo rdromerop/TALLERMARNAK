@@ -19,6 +19,63 @@ export async function addInventoryItem(item) {
   return data[0];
 }
 
+export async function updateInventoryItem(id, updates) {
+  const { data, error } = await supabase
+    .from('inventory')
+    .update(updates)
+    .eq('id', id)
+    .select();
+  if (error) throw error;
+  return data[0];
+}
+
+export async function adjustInventoryStock(id, newStock, reason, productName, changeAmount) {
+  // 1. Update stock
+  const { data, error } = await supabase
+    .from('inventory')
+    .update({ stock: newStock })
+    .eq('id', id)
+    .select();
+  if (error) throw error;
+
+  // 2. Log the adjustment (silently fail if table doesn't exist yet so it doesn't break)
+  try {
+     await supabase.from('inventory_logs').insert([{
+       inventory_id: id,
+       product_name: productName,
+       change_amount: changeAmount,
+       reason: reason
+     }]);
+  } catch(e) {
+     console.warn('Could not log inventory adjust (table might not exist yet)', e);
+  }
+
+  return data[0];
+}
+
+export async function getInventoryLogs() {
+  try {
+     const { data, error } = await supabase
+       .from('inventory_logs')
+       .select('*')
+       .order('created_at', { ascending: false })
+       .limit(100);
+     if (error) throw error;
+     return data || [];
+  } catch(e) {
+     console.warn('Could not fetch inventory logs (table might not exist yet)', e);
+     return [];
+  }
+}
+
+export async function deleteInventoryItem(id) {
+  const { error } = await supabase
+    .from('inventory')
+    .delete()
+    .eq('id', id);
+  if (error) throw error;
+}
+
 // --- Expenses Functions ---
 export async function getExpenses() {
   const { data, error } = await supabase
@@ -33,6 +90,16 @@ export async function addExpense(expense) {
   const { data, error } = await supabase
     .from('expenses')
     .insert([expense])
+    .select();
+  if (error) throw error;
+  return data[0];
+}
+
+export async function updateExpense(id, updates) {
+  const { data, error } = await supabase
+    .from('expenses')
+    .update(updates)
+    .eq('id', id)
     .select();
   if (error) throw error;
   return data[0];
@@ -114,6 +181,75 @@ export async function getSalesByDate(dateStr) {
   return data;
 }
 
+export async function getSalesByDateRange(startStr, endStr) {
+  const startDate = `${startStr}T00:00:00.000Z`;
+  const endDate = `${endStr}T23:59:59.999Z`;
+  
+  const { data, error } = await supabase
+    .from('sales')
+    .select('*, sale_items(*)')
+    .gte('date', startDate)
+    .lte('date', endDate)
+    .order('date', { ascending: true });
+    
+  if (error) throw error;
+  return data;
+}
+
+export async function cancelSale(saleId) {
+  // 1. Get the sale and its items
+  const { data: saleData, error: saleError } = await supabase
+    .from('sales')
+    .select('*, sale_items(*)')
+    .eq('id', saleId)
+    .single();
+    
+  if (saleError) throw saleError;
+  
+  if (saleData.status === 'Anulada') {
+     throw new Error('La venta ya está anulada.');
+  }
+
+  // 2. Update inventory stock (Revert)
+  for (const item of saleData.sale_items) {
+     if (item.inventory_id && item.quantity > 0) {
+        // Try to revert stock using the existing decrement_stock with a negative amount
+        const { error: rpcError } = await supabase.rpc('decrement_stock', { 
+           row_id: item.inventory_id, 
+           amount: -item.quantity // Revert stock
+        });
+        
+        if (rpcError) {
+           console.error('RPC Error reverting stock, falling back to manual update:', rpcError);
+           // Fallback if RPC doesn't support negative or errors out:
+           const { data: invItem } = await supabase.from('inventory').select('stock').eq('id', item.inventory_id).single();
+           if (invItem) {
+               await supabase.from('inventory').update({ stock: invItem.stock + item.quantity }).eq('id', item.inventory_id);
+           }
+        }
+     }
+  }
+
+  // 3. Mark sale as Anulada
+  const { error: updateError } = await supabase
+    .from('sales')
+    .update({ status: 'Anulada' })
+    .eq('id', saleId);
+    
+  if (updateError) throw updateError;
+}
+
+export async function updateSaleStatus(saleId, status) {
+  const { data, error } = await supabase
+    .from('sales')
+    .update({ status: status })
+    .eq('id', saleId)
+    .select();
+    
+  if (error) throw error;
+  return data[0];
+}
+
 // --- Mechanics & Repairs Functions ---
 export async function getMechanics() {
   const { data, error } = await supabase
@@ -147,6 +283,16 @@ export async function addRepair(repair) {
   const { data, error } = await supabase
     .from('repairs')
     .insert([repair])
+    .select();
+  if (error) throw error;
+  return data[0];
+}
+
+export async function updateRepairStatus(id, status) {
+  const { data, error } = await supabase
+    .from('repairs')
+    .update({ status })
+    .eq('id', id)
     .select();
   if (error) throw error;
   return data[0];
