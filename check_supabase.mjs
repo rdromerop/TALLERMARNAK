@@ -1,5 +1,5 @@
 
-import { getInventory, getSales, getExpenses, getMechanics } from './src/supabase/functions';
+import { getInventory, getSales, getExpenses, getMechanics } from './src/supabase/functions.js';
 
 async function checkSchema() {
   console.log('--- Checking Supabase Schema Status ---');
@@ -38,7 +38,7 @@ async function checkSchema() {
 
   // Check RPC
   try {
-    const { supabase } = await import('./src/supabase/client');
+    const { supabase } = await import('./src/supabase/client.js');
     console.log('Checking decrement_stock RPC...');
     const { error } = await supabase.rpc('decrement_stock', { row_id: '00000000-0000-0000-0000-000000000000', amount: 0 });
     if (error && error.message.includes('function') && error.message.includes('not found')) {
