@@ -148,10 +148,10 @@ export default function ReportsPage() {
     const utf8BOM = '\uFEFF';
     const finalCsv = utf8BOM + [headers.join(';'), ...csvContent].join('\n');
     
-    const blob = new Blob([finalCsv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
+    // Use an encoded URI instead of a blob, which avoids Blob sandbox restrictions on some browsers/Next setups
+    const encodedUri = 'data:text/csv;charset=utf-8,' + encodeURIComponent(finalCsv);
     const link = document.createElement('a');
-    link.href = url;
+    link.href = encodedUri;
     link.setAttribute('download', `Reporte_Ventas_Marnak_${startDate}_al_${endDate}.csv`);
     document.body.appendChild(link);
     link.click();
