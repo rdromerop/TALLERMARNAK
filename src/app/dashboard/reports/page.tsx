@@ -1,8 +1,14 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Download, Calendar as CalendarIcon, Loader2, FileText, Search, TrendingUp, Wallet, Package, BarChart3, Activity } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { Download, Calendar as CalendarIcon, Loader2, FileText, Search, TrendingUp, Wallet, Package, BarChart3, Activity, FileSpreadsheet, ArrowUpDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { getSalesByDateRange } from '@/supabase/functions';
+
+// Utility for text search normalization
+const normalizeText = (text: any) => {
+  if (!text) return '';
+  return String(text).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+};
 
 export default function ReportsPage() {
   const [startDate, setStartDate] = useState(() => {
@@ -13,6 +19,14 @@ export default function ReportsPage() {
   const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
   const [sales, setSales] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  
+  // Advanced Filters
+  const [searchTerm, setSearchTerm] = useState('');
+
+  // Sorting and Pagination
+  const [sortConfig, setSortConfig] = useState<{ key: string, direction: 'asc' | 'desc' }>({ key: 'date', direction: 'desc' });
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
   
   useEffect(() => {
     if (startDate && endDate) {
@@ -65,6 +79,85 @@ export default function ReportsPage() {
 
   const maxChartVal = chartData.length > 0 ? Math.max(...chartData.map(d => d.amount)) : 0;
   
+  // Filter sales based on advanced search (Client or Product)
+  const filteredSales = useMemo(() => {
+    return sales.filter(s => {
+       const term = normalizeText(searchTerm);
+       if (!term) return true;
+       
+       const matchCustomer = normalizeText(s.customer_name).includes(term);
+       const matchMotorcycle = normalizeText(s.motorcycle).includes(term);
+       const matchProducts = s.sale_items && s.sale_items.some((item: any) => normalizeText(item.item_name).includes(term));
+       
+       return matchCustomer || matchMotorcycle || matchProducts;
+    });
+  }, [sales, searchTerm]);
+
+  // Sort sales
+  const handleSort = (key: string) => {
+    let direction: 'asc' | 'desc' = 'asc';
+    if (sortConfig.key === key && sortConfig.direction === 'asc') direction = 'desc';
+    setSortConfig({ key, direction });
+  };
+
+  const sortedSales = useMemo(() => {
+    const sortable = [...filteredSales];
+    sortable.sort((a, b) => {
+      if (sortConfig.key === 'customer') {
+         return sortConfig.direction === 'asc' ? (a.customer_name || '').localeCompare(b.customer_name || '') : (b.customer_name || '').localeCompare(a.customer_name || '');
+      } else if (sortConfig.key === 'date') {
+         return sortConfig.direction === 'asc' ? new Date(a.date).getTime() - new Date(b.date).getTime() : new Date(b.date).getTime() - new Date(a.date).getTime();
+      } else if (sortConfig.key === 'amount') {
+         return sortConfig.direction === 'asc' ? Number(a.total_amount) - Number(b.total_amount) : Number(b.total_amount) - Number(a.total_amount);
+      }
+      return 0;
+    });
+    return sortable;
+  }, [filteredSales, sortConfig]);
+
+  // Pagination
+  const totalPages = Math.ceil(sortedSales.length / itemsPerPage);
+  const paginatedSales = sortedSales.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, startDate, endDate]);
+
+  const handleExportExcel = () => {
+    if (filteredSales.length === 0) return;
+
+    const headers = ['Fecha', 'Hora', 'Cliente', 'Motocicleta', 'Artículos', 'Monto Total', 'Estado'];
+    const csvContent = filteredSales.map(sale => {
+      const date = new Date(sale.date).toLocaleDateString('es-CO');
+      const time = new Date(sale.date).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
+      const customer = `"${(sale.customer_name || 'Consumidor Final').replace(/"/g, '""')}"`;
+      const motorcycle = `"${(sale.motorcycle || 'N/A').replace(/"/g, '""')}"`;
+      
+      const itemsStr = sale.sale_items
+        ? sale.sale_items.map((i: any) => `${i.quantity}x ${i.item_name}`).join(', ')
+        : '';
+      const itemsFormatted = `"${itemsStr.replace(/"/g, '""')}"`;
+      
+      const amount = sale.total_amount;
+      const status = sale.status;
+
+      return [date, time, customer, motorcycle, itemsFormatted, amount, status].join(';');
+    });
+
+    const utf8BOM = '\uFEFF';
+    const finalCsv = utf8BOM + [headers.join(';'), ...csvContent].join('\n');
+    
+    const blob = new Blob([finalCsv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `Reporte_Ventas_Marnak_${startDate}_al_${endDate}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+  
   // Calculate best-selling item
   const itemCounts = sales.reduce((acc: Record<string, number>, sale) => {
     sale.sale_items.forEach((item: any) => {
@@ -104,11 +197,18 @@ export default function ReportsPage() {
              />
           </div>
           <button 
+            onClick={handleExportExcel}
+            className="inline-flex items-center gap-2 w-full sm:w-auto justify-center bg-white border border-slate-200 text-slate-700 px-4 py-2.5 rounded-xl font-medium hover:bg-slate-50 transition-all shadow-sm active:scale-95 print:hidden"
+          >
+            <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+            Excel
+          </button>
+          <button 
             onClick={handleExportPDF}
-            className="inline-flex items-center gap-2 w-full sm:w-auto justify-center bg-slate-900 text-white px-4 py-2.5 rounded-xl font-medium hover:bg-slate-800 transition-all shadow-sm active:scale-95"
+            className="inline-flex items-center gap-2 w-full sm:w-auto justify-center bg-slate-900 text-white px-4 py-2.5 rounded-xl font-medium hover:bg-slate-800 transition-all shadow-sm active:scale-95 print:hidden"
           >
             <Download className="w-4 h-4" />
-            Descargar PDF
+            PDF
           </button>
         </div>
       </div>
@@ -251,40 +351,71 @@ export default function ReportsPage() {
 
           {/* Detailed Table */}
           <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
-            <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50 print:bg-white">
-              <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                <FileText className="w-5 h-5 text-slate-400" />
-                Detalle de Ventas
-              </h3>
-              <span className="bg-white px-3 py-1 rounded-full border border-slate-200 text-xs font-medium text-slate-500 shadow-sm print:hidden">
-                Período: <strong>{startDate} al {endDate}</strong>
-              </span>
+            <div className="p-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-50/50 print:bg-white">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                  <FileText className="w-5 h-5 text-slate-400 opacity-0 sm:opacity-100" />
+                  Detalle de Ventas
+                </h3>
+                <span className="bg-white px-3 py-1 rounded-full border border-slate-200 text-xs font-medium text-slate-500 shadow-sm print:hidden">
+                  Período: <strong>{startDate} al {endDate}</strong>
+                </span>
+              </div>
+              <div className="relative max-w-xs w-full print:hidden">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <input 
+                  type="text" 
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="Buscar cliente, moto o producto..." 
+                  className="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 shadow-sm transition-all"
+                />
+              </div>
             </div>
 
-            {sales.length === 0 ? (
+            {filteredSales.length === 0 ? (
               <div className="p-12 text-center text-slate-400">
                 <Search className="w-12 h-12 mx-auto mb-4 opacity-20" />
-                <p className="text-lg font-medium">No se encontraron ventas en este período</p>
-                <p className="text-sm">Intenta ampliando el rango de fechas en el calendario superior.</p>
+                <p className="text-lg font-medium">No se encontraron ventas</p>
+                <p className="text-sm">Vérifica los filtros de búsqueda y fechas.</p>
               </div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm text-left">
                   <thead className="text-xs text-slate-400 uppercase bg-slate-50/30 print:bg-white border-b border-slate-100">
                     <tr>
-                      <th className="px-6 py-4 font-semibold">Cliente y Fecha</th>
+                      <th 
+                        className="px-6 py-4 font-semibold cursor-pointer hover:bg-slate-100 transition-colors group select-none relative" 
+                        onClick={() => handleSort('date')}
+                      >
+                        <div className="flex items-center gap-1">Fecha <ArrowUpDown className="w-3 h-3 opacity-0 group-hover:opacity-100" /></div>
+                      </th>
+                      <th 
+                        className="px-6 py-4 font-semibold cursor-pointer hover:bg-slate-100 transition-colors group select-none relative" 
+                        onClick={() => handleSort('customer')}
+                      >
+                        <div className="flex items-center gap-1">Cliente <ArrowUpDown className="w-3 h-3 opacity-0 group-hover:opacity-100" /></div>
+                      </th>
                       <th className="px-6 py-4 font-semibold">Motocicleta</th>
                       <th className="px-6 py-4 font-semibold">Artículos</th>
-                      <th className="px-6 py-4 font-semibold text-right">Monto Total</th>
+                      <th 
+                        className="px-6 py-4 font-semibold text-right cursor-pointer hover:bg-slate-100 transition-colors group select-none relative" 
+                        onClick={() => handleSort('amount')}
+                      >
+                        <div className="flex items-center justify-end gap-1"><ArrowUpDown className="w-3 h-3 opacity-0 group-hover:opacity-100" /> Monto Total</div>
+                      </th>
                       <th className="px-6 py-4 font-semibold text-center">Estado</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-50">
-                    {sales.map((sale) => (
+                    {paginatedSales.map((sale) => (
                       <tr key={sale.id} className="hover:bg-slate-50/50 transition-colors">
+                        <td className="px-6 py-4 text-slate-500">
+                          <div className="text-slate-900 font-medium">{new Date(sale.date).toLocaleDateString()}</div>
+                          <div className="text-xs">{new Date(sale.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                        </td>
                         <td className="px-6 py-4">
                           <div className="font-bold text-slate-900 uppercase">{sale.customer_name || 'Consumidor Final'}</div>
-                          <div className="text-xs text-slate-400">{new Date(sale.date).toLocaleDateString()} - {new Date(sale.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
                         </td>
                         <td className="px-6 py-4 text-slate-500">
                           {sale.motorcycle || 'N/A'}
@@ -311,14 +442,72 @@ export default function ReportsPage() {
                   </tbody>
                   <tfoot className="bg-slate-50/50 print:bg-white border-t border-slate-100">
                     <tr>
-                      <td colSpan={3} className="px-6 py-4 text-sm font-bold text-slate-900 text-right uppercase tracking-[2px]">TOTAL CONSOLIDADO</td>
+                      <td colSpan={4} className="px-6 py-4 text-sm font-bold text-slate-900 text-right uppercase tracking-[2px]">TOTAL MOSTRADO (FILTRADO)</td>
                       <td className="px-6 py-4 text-lg font-black text-blue-600 text-right">
-                        $ {totalEarnings.toLocaleString('es-CO')}
+                        $ {filteredSales.reduce((sum, s) => sum + Number(s.total_amount), 0).toLocaleString('es-CO')}
                       </td>
                       <td></td>
                     </tr>
+                    {searchTerm && (
+                      <tr className="border-t border-slate-200">
+                        <td colSpan={4} className="px-6 py-2 text-xs font-bold text-slate-400 text-right uppercase tracking-[1px]">TOTAL GENERAL DEL RANGO</td>
+                        <td className="px-6 py-2 text-sm font-bold text-slate-500 text-right">
+                          $ {totalEarnings.toLocaleString('es-CO')}
+                        </td>
+                        <td></td>
+                      </tr>
+                    )}
                   </tfoot>
                 </table>
+              </div>
+            )}
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="p-4 border-t border-slate-200 bg-slate-50/50 flex flex-col sm:flex-row items-center justify-between text-sm gap-4 print:hidden">
+                <span className="text-slate-500">
+                  Mostrando <span className="font-semibold text-slate-900 border border-slate-200 px-2 py-1 rounded bg-white">{(currentPage - 1) * itemsPerPage + 1} - {Math.min(currentPage * itemsPerPage, filteredSales.length)}</span> de <span className="font-semibold text-slate-900">{filteredSales.length}</span> resultados
+                </span>
+                <div className="flex items-center gap-2">
+                  <button 
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                    className="p-1.5 rounded-lg border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </button>
+                  <div className="flex items-center gap-1">
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => {
+                      // Simple pagination shortener
+                      if (totalPages > 7) {
+                        if (page !== 1 && page !== totalPages && Math.abs(currentPage - page) > 1) {
+                           if (page === 2 || page === totalPages - 1) return <span key={page} className="px-1 text-slate-400">...</span>;
+                           return null;
+                        }
+                      }
+                      return (
+                        <button
+                          key={page}
+                          onClick={() => setCurrentPage(page)}
+                          className={`w-8 h-8 rounded-lg text-sm font-medium transition-all ${
+                            currentPage === page 
+                              ? 'bg-blue-600 text-white shadow-sm' 
+                              : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200'
+                          }`}
+                        >
+                          {page}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <button 
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                    className="p-1.5 rounded-lg border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
             )}
           </div>

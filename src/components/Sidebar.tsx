@@ -19,8 +19,8 @@ export function Sidebar() {
 
   return (
     <aside className="w-64 bg-brand-dark text-white min-h-screen flex flex-col hidden md:flex border-r border-slate-800 shadow-xl relative z-20">
-      <div className="p-8 flex flex-col items-center border-b border-slate-800/50 bg-brand-green/10">
-        <div className="relative w-44 h-32 mb-2 filter drop-shadow-xl">
+      <div className="py-6 flex flex-col items-center justify-center border-b border-slate-800/50 bg-brand-green/10">
+        <div className="relative w-56 h-48 mb-2 filter drop-shadow-2xl hover:scale-105 transition-transform duration-300">
           <Image
             src="/marnak-logo-user-clean.png"
             alt="Marnak Logo"
@@ -28,10 +28,9 @@ export function Sidebar() {
             className="object-contain"
           />
         </div>
-        <h1 className="text-2xl font-black tracking-[0.2em] text-brand-gold uppercase">
+        <h1 className="text-4xl font-black tracking-[0.2em] text-brand-gold uppercase">
           MARNAK
         </h1>
-
       </div>
       
       <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">

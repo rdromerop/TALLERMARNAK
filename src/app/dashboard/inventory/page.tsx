@@ -256,27 +256,36 @@ export default function InventoryPage() {
       </div>
 
       <div className="grid gap-6 md:grid-cols-3 mb-6">
-        <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm flex items-center gap-4 hover:border-slate-300 transition-colors">
+        <button 
+          onClick={() => setFilterStatus('All')}
+          className={`bg-white rounded-xl border p-5 shadow-sm flex items-center gap-4 transition-all text-left ${filterStatus === 'All' ? 'border-blue-500 ring-2 ring-blue-500/20 shadow-md scale-[1.02]' : 'border-slate-200 hover:border-blue-300 hover:shadow-md hover:scale-[1.01]'}`}
+        >
           <div className="p-3 bg-blue-50 text-blue-600 rounded-xl"><Package2 className="w-6 h-6" /></div>
           <div>
             <p className="text-sm font-medium text-slate-500">Total Artículos</p>
             <p className="text-2xl font-bold text-slate-900">{isLoading ? '...' : totalItems}</p>
           </div>
-        </div>
-        <div className="bg-white rounded-xl border border-amber-200 p-5 shadow-sm flex items-center gap-4 hover:border-amber-300 transition-colors">
+        </button>
+        <button 
+          onClick={() => setFilterStatus('Stock Bajo')}
+          className={`bg-white rounded-xl border p-5 shadow-sm flex items-center gap-4 transition-all text-left ${filterStatus === 'Stock Bajo' ? 'border-amber-500 ring-2 ring-amber-500/20 shadow-md scale-[1.02]' : 'border-amber-200 hover:border-amber-400 hover:shadow-md hover:scale-[1.01]'}`}
+        >
           <div className="p-3 bg-amber-50 text-amber-600 rounded-xl"><AlertTriangle className="w-6 h-6" /></div>
           <div>
             <p className="text-sm font-medium text-amber-600">Stock Bajo</p>
             <p className="text-2xl font-bold text-slate-900">{isLoading ? '...' : lowStockItems}</p>
           </div>
-        </div>
-        <div className="bg-white rounded-xl border border-rose-200 p-5 shadow-sm flex items-center gap-4 hover:border-rose-300 transition-colors">
+        </button>
+        <button 
+          onClick={() => setFilterStatus('Agotado')}
+          className={`bg-white rounded-xl border p-5 shadow-sm flex items-center gap-4 transition-all text-left ${filterStatus === 'Agotado' ? 'border-rose-500 ring-2 ring-rose-500/20 shadow-md scale-[1.02]' : 'border-rose-200 hover:border-rose-400 hover:shadow-md hover:scale-[1.01]'}`}
+        >
           <div className="p-3 bg-rose-50 text-rose-600 rounded-xl"><AlertTriangle className="w-6 h-6" /></div>
           <div>
             <p className="text-sm font-medium text-rose-600">Agotados</p>
             <p className="text-2xl font-bold text-slate-900">{isLoading ? '...' : outOfStockItems}</p>
           </div>
-        </div>
+        </button>
       </div>
 
       <div className="bg-white border border-slate-200 rounded-2xl shadow-[0_2px_10px_-3px_rgba(6,81,237,0.05)] overflow-hidden">

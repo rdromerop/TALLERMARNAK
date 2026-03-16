@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Plus, Receipt, TrendingDown, X, DollarSign, Calendar, Tag, FileText, Loader2, Trash2, Edit2, Search, CheckCircle2, Filter, AlertTriangle } from 'lucide-react';
+import { Plus, Receipt, TrendingDown, X, DollarSign, Calendar, Tag, FileText, Loader2, Trash2, Edit2, Search, CheckCircle2, Filter, AlertTriangle, ArrowUpDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { getExpenses, addExpense, deleteExpense, updateExpense } from '@/supabase/functions';
 
 export default function ExpensesPage() {
@@ -23,6 +23,11 @@ export default function ExpensesPage() {
   const [filterDateTo, setFilterDateTo] = useState('');
   const [filterCategory, setFilterCategory] = useState('Todas');
   const [filterStatus, setFilterStatus] = useState('Todos');
+
+  // Sorting and Pagination
+  const [sortConfig, setSortConfig] = useState<{ key: string, direction: 'asc' | 'desc' }>({ key: 'date', direction: 'desc' });
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 6;
 
   const [editingExpense, setEditingExpense] = useState<any>(null);
 
@@ -158,6 +163,35 @@ export default function ExpensesPage() {
     return matchSearch && matchDate && matchCategory && matchStatus;
   });
 
+  // Sorting
+  const handleSort = (key: string) => {
+    let direction: 'asc' | 'desc' = 'asc';
+    if (sortConfig.key === key && sortConfig.direction === 'asc') direction = 'desc';
+    setSortConfig({ key, direction });
+  };
+
+  filteredExpenses.sort((a, b) => {
+    if (sortConfig.key === 'description') {
+       return sortConfig.direction === 'asc' ? a.description.localeCompare(b.description) : b.description.localeCompare(a.description);
+    } else if (sortConfig.key === 'category') {
+       return sortConfig.direction === 'asc' ? a.category.localeCompare(b.category) : b.category.localeCompare(a.category);
+    } else if (sortConfig.key === 'date') {
+       return sortConfig.direction === 'asc' ? new Date(a.date).getTime() - new Date(b.date).getTime() : new Date(b.date).getTime() - new Date(a.date).getTime();
+    } else if (sortConfig.key === 'amount') {
+       return sortConfig.direction === 'asc' ? Number(a.amount) - Number(b.amount) : Number(b.amount) - Number(a.amount);
+    }
+    return 0;
+  });
+
+  // Pagination
+  const totalPages = Math.ceil(filteredExpenses.length / itemsPerPage);
+  const paginatedExpenses = filteredExpenses.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
+  // Reset page on filter change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, filterDateFrom, filterDateTo, filterCategory, filterStatus]);
+
   const totalFiltered = filteredExpenses.reduce((sum, item) => sum + Number(item.amount), 0);
 
   return (
@@ -252,10 +286,30 @@ export default function ExpensesPage() {
           <table className="w-full text-sm text-left">
             <thead className="text-xs text-slate-500 uppercase bg-slate-50/80 border-b border-slate-100">
               <tr>
-                <th className="px-6 py-4 font-semibold tracking-wider">Descripción</th>
-                <th className="px-6 py-4 font-semibold tracking-wider">Categoría</th>
-                <th className="px-6 py-4 font-semibold tracking-wider">Fecha</th>
-                <th className="px-6 py-4 font-semibold tracking-wider text-right">Monto (COP)</th>
+                <th 
+                  className="px-6 py-4 font-semibold tracking-wider cursor-pointer hover:bg-slate-100 transition-colors group select-none"
+                  onClick={() => handleSort('description')}
+                >
+                  <div className="flex items-center gap-1">Descripción <ArrowUpDown className="w-3 h-3 opacity-0 group-hover:opacity-100" /></div>
+                </th>
+                <th 
+                  className="px-6 py-4 font-semibold tracking-wider cursor-pointer hover:bg-slate-100 transition-colors group select-none"
+                  onClick={() => handleSort('category')}
+                >
+                  <div className="flex items-center gap-1">Categoría <ArrowUpDown className="w-3 h-3 opacity-0 group-hover:opacity-100" /></div>
+                </th>
+                <th 
+                  className="px-6 py-4 font-semibold tracking-wider cursor-pointer hover:bg-slate-100 transition-colors group select-none"
+                  onClick={() => handleSort('date')}
+                >
+                  <div className="flex items-center gap-1">Fecha <ArrowUpDown className="w-3 h-3 opacity-0 group-hover:opacity-100" /></div>
+                </th>
+                <th 
+                  className="px-6 py-4 font-semibold tracking-wider text-right cursor-pointer hover:bg-slate-100 transition-colors group select-none"
+                  onClick={() => handleSort('amount')}
+                >
+                  <div className="flex items-center justify-end gap-1"><ArrowUpDown className="w-3 h-3 opacity-0 group-hover:opacity-100" /> Monto (COP)</div>
+                </th>
                 <th className="px-6 py-4 font-semibold tracking-wider">Estado</th>
                 <th className="px-6 py-4 font-semibold tracking-wider text-center">Acciones</th>
               </tr>
@@ -275,7 +329,7 @@ export default function ExpensesPage() {
                    </td>
                  </tr>
               ) : (
-                filteredExpenses.map((item) => (
+                paginatedExpenses.map((item) => (
                   <tr key={item.id} className="hover:bg-slate-50/50 transition-colors group">
                     <td className="px-6 py-4 font-medium text-slate-900">{item.description}</td>
                     <td className="px-6 py-4 text-slate-600">
@@ -330,6 +384,46 @@ export default function ExpensesPage() {
             </tbody>
           </table>
         </div>
+
+        {/* Pagination Controls */}
+        {totalPages > 1 && (
+          <div className="p-4 border-t border-slate-200 bg-slate-50/50 flex items-center justify-between text-sm">
+            <span className="text-slate-500">
+              Mostrando <span className="font-semibold text-slate-900 border border-slate-200 px-2 py-1 rounded bg-white">{(currentPage - 1) * itemsPerPage + 1} - {Math.min(currentPage * itemsPerPage, filteredExpenses.length)}</span> de <span className="font-semibold text-slate-900">{filteredExpenses.length}</span> resultados
+            </span>
+            <div className="flex items-center gap-2">
+              <button 
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="p-1.5 rounded-lg border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <div className="flex items-center gap-1">
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                  <button
+                    key={page}
+                    onClick={() => setCurrentPage(page)}
+                    className={`w-8 h-8 rounded-lg text-sm font-medium transition-all ${
+                      currentPage === page 
+                        ? 'bg-blue-600 text-white shadow-sm' 
+                        : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200'
+                    }`}
+                  >
+                    {page}
+                  </button>
+                ))}
+              </div>
+              <button 
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                className="p-1.5 rounded-lg border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Add Expense Modal */}

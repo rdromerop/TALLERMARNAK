@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { ShoppingCart, Plus, Minus, Trash2, CheckCircle2, Package, User, Bike, CreditCard, X, Loader2, Search, Filter, MoreHorizontal, Calendar, Ban, Receipt, Banknote, Clock } from 'lucide-react';
+import { ShoppingCart, Plus, Minus, Trash2, CheckCircle2, Package, User, Bike, CreditCard, X, Loader2, Search, Filter, MoreHorizontal, Calendar, Ban, Receipt, Banknote, Clock, ArrowUpDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { getInventory, createSale, getSales, cancelSale, updateSaleStatus } from '@/supabase/functions';
 
 interface CartItem {
@@ -28,6 +28,11 @@ export default function SalesPage() {
   const [filterDateFrom, setFilterDateFrom] = useState('');
   const [filterDateTo, setFilterDateTo] = useState('');
   const [filterStatus, setFilterStatus] = useState('Todos');
+
+  // Sorting and Pagination
+  const [sortConfig, setSortConfig] = useState<{ key: string, direction: 'asc' | 'desc' }>({ key: 'date', direction: 'desc' });
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 8;
 
   // Checkout State
   const [customerName, setCustomerName] = useState('');
@@ -194,10 +199,12 @@ export default function SalesPage() {
   );
 
   const filteredSales = salesData.filter(s => {
+    const sTerm = normalizeText(historySearchTerm);
     const matchesSearch = 
-      normalizeText(s.customer_name).includes(normalizeText(historySearchTerm)) ||
-      normalizeText(s.motorcycle).includes(normalizeText(historySearchTerm)) ||
-      normalizeText(s.id).includes(normalizeText(historySearchTerm));
+      normalizeText(s.customer_name).includes(sTerm) ||
+      normalizeText(s.motorcycle).includes(sTerm) ||
+      normalizeText(s.id).includes(sTerm) ||
+      (s.sale_items && s.sale_items.some((item: any) => normalizeText(item.item_name).includes(sTerm)));
       
     const matchesStatus = filterStatus === 'Todos' || s.status === filterStatus;
     
@@ -219,7 +226,38 @@ export default function SalesPage() {
   // Calculate totals for filtered sales (only valid/paid ones usually, but let's decide how "Hoy" behaves)
   const isViewingTodayOnly = !filterDateFrom && !filterDateTo && filterStatus === 'Todos' && !historySearchTerm;
   const today = new Date().toISOString().split('T')[0];
-  const displaySales = isViewingTodayOnly ? filteredSales.filter(s => s.date?.startsWith(today)) : filteredSales;
+  let displaySales = isViewingTodayOnly ? filteredSales.filter(s => s.date?.startsWith(today)) : filteredSales;
+
+  // Sorting
+  const handleSort = (key: string) => {
+    let direction: 'asc' | 'desc' = 'asc';
+    if (sortConfig.key === key && sortConfig.direction === 'asc') direction = 'desc';
+    setSortConfig({ key, direction });
+  };
+
+  displaySales.sort((a, b) => {
+    if (sortConfig.key === 'customer') {
+       return sortConfig.direction === 'asc' ? (a.customer_name || '').localeCompare(b.customer_name || '') : (b.customer_name || '').localeCompare(a.customer_name || '');
+    } else if (sortConfig.key === 'date') {
+       return sortConfig.direction === 'asc' ? new Date(a.date).getTime() - new Date(b.date).getTime() : new Date(b.date).getTime() - new Date(a.date).getTime();
+    } else if (sortConfig.key === 'amount') {
+       return sortConfig.direction === 'asc' ? Number(a.total_amount) - Number(b.total_amount) : Number(b.total_amount) - Number(a.total_amount);
+    } else if (sortConfig.key === 'profit') {
+       const profitA = a.sale_items?.reduce((sum: number, item: any) => sum + Number(item.profit || 0), 0) || 0;
+       const profitB = b.sale_items?.reduce((sum: number, item: any) => sum + Number(item.profit || 0), 0) || 0;
+       return sortConfig.direction === 'asc' ? profitA - profitB : profitB - profitA;
+    }
+    return 0;
+  });
+
+  // Pagination
+  const totalPages = Math.ceil(displaySales.length / itemsPerPage);
+  const paginatedSales = displaySales.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
+  // Reset page on filter change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [historySearchTerm, filterDateFrom, filterDateTo, filterStatus]);
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -441,11 +479,31 @@ export default function SalesPage() {
           <table className="w-full text-sm text-left">
             <thead className="text-xs text-slate-500 uppercase bg-slate-50/80 border-b border-slate-100">
               <tr>
-                <th className="px-6 py-4 font-semibold tracking-wider">Cliente</th>
+                <th 
+                  className="px-6 py-4 font-semibold tracking-wider cursor-pointer hover:bg-slate-100 transition-colors group select-none"
+                  onClick={() => handleSort('customer')}
+                >
+                  <div className="flex items-center gap-1">Cliente <ArrowUpDown className="w-3 h-3 opacity-0 group-hover:opacity-100" /></div>
+                </th>
                 <th className="px-6 py-4 font-semibold tracking-wider">Moto</th>
-                <th className="px-6 py-4 font-semibold tracking-wider">Hora / Fecha</th>
-                <th className="px-6 py-4 font-semibold tracking-wider text-right">Monto (COP)</th>
-                <th className="px-6 py-4 font-semibold tracking-wider text-emerald-600 text-right">Ganancia</th>
+                <th 
+                  className="px-6 py-4 font-semibold tracking-wider cursor-pointer hover:bg-slate-100 transition-colors group select-none"
+                  onClick={() => handleSort('date')}
+                >
+                  <div className="flex items-center gap-1">Hora / Fecha <ArrowUpDown className="w-3 h-3 opacity-0 group-hover:opacity-100" /></div>
+                </th>
+                <th 
+                  className="px-6 py-4 font-semibold tracking-wider text-right cursor-pointer hover:bg-slate-100 transition-colors group select-none"
+                  onClick={() => handleSort('amount')}
+                >
+                  <div className="flex items-center justify-end gap-1"><ArrowUpDown className="w-3 h-3 opacity-0 group-hover:opacity-100" /> Monto (COP)</div>
+                </th>
+                <th 
+                  className="px-6 py-4 font-semibold tracking-wider text-emerald-600 text-right cursor-pointer hover:bg-slate-100 transition-colors group select-none"
+                  onClick={() => handleSort('profit')}
+                >
+                  <div className="flex items-center justify-end gap-1"><ArrowUpDown className="w-3 h-3 opacity-0 group-hover:opacity-100" /> Ganancia</div>
+                </th>
                 <th className="px-6 py-4 font-semibold tracking-wider">Estado</th>
                 <th className="px-6 py-4 font-semibold tracking-wider text-right">Artículos</th>
                 <th className="px-6 py-4 font-semibold tracking-wider text-center">Acciones</th>
@@ -466,7 +524,7 @@ export default function SalesPage() {
                    </td>
                  </tr>
               ) : (
-                displaySales.map((sale) => (
+                paginatedSales.map((sale) => (
                   <tr key={sale.id} className="hover:bg-slate-50/50 transition-colors group cursor-pointer" onClick={(e) => {
                      // don't open receipt if clicking on actions
                      const target = e.target as HTMLElement;
@@ -552,6 +610,46 @@ export default function SalesPage() {
           </table>
         </div>
         
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="p-4 border-t border-slate-200 bg-slate-50/50 flex items-center justify-between text-sm">
+            <span className="text-slate-500">
+              Mostrando <span className="font-semibold text-slate-900 border border-slate-200 px-2 py-1 rounded bg-white">{(currentPage - 1) * itemsPerPage + 1} - {Math.min(currentPage * itemsPerPage, displaySales.length)}</span> de <span className="font-semibold text-slate-900">{displaySales.length}</span> resultados
+            </span>
+            <div className="flex items-center gap-2">
+              <button 
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="p-1.5 rounded-lg border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <div className="flex items-center gap-1">
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                  <button
+                    key={page}
+                    onClick={() => setCurrentPage(page)}
+                    className={`w-8 h-8 rounded-lg text-sm font-medium transition-all ${
+                      currentPage === page 
+                        ? 'bg-blue-600 text-white shadow-sm' 
+                        : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200'
+                    }`}
+                  >
+                    {page}
+                  </button>
+                ))}
+              </div>
+              <button 
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                className="p-1.5 rounded-lg border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        )}
+
         <div className="p-4 border-t border-slate-100 bg-slate-50/30 flex items-center justify-between text-sm text-slate-500 font-medium">
            <span>Total Mostrado: <span className="text-slate-900 font-bold">{displaySales.filter(s => s.status !== 'Anulada').length} ventas válidas</span></span>
            <div className="flex items-center gap-6">
