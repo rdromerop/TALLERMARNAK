@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Download, Calendar as CalendarIcon, Loader2, FileText, Search, TrendingUp, Wallet, Package, BarChart3, Activity, FileSpreadsheet, ArrowUpDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { getSalesByDateRange } from '@/supabase/functions';
+import * as XLSX from 'xlsx';
 
 // Utility for text search normalization
 const normalizeText = (text: any) => {
@@ -127,35 +128,40 @@ export default function ReportsPage() {
   const handleExportExcel = () => {
     if (filteredSales.length === 0) return;
 
-    const headers = ['Fecha', 'Hora', 'Cliente', 'Motocicleta', 'Artículos', 'Monto Total', 'Estado'];
-    const csvContent = filteredSales.map(sale => {
-      const date = new Date(sale.date).toLocaleDateString('es-CO');
-      const time = new Date(sale.date).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
-      const customer = `"${(sale.customer_name || 'Consumidor Final').replace(/"/g, '""')}"`;
-      const motorcycle = `"${(sale.motorcycle || 'N/A').replace(/"/g, '""')}"`;
-      
+    const dataToExport = filteredSales.map(sale => {
       const itemsStr = sale.sale_items
         ? sale.sale_items.map((i: any) => `${i.quantity}x ${i.item_name}`).join(', ')
         : '';
-      const itemsFormatted = `"${itemsStr.replace(/"/g, '""')}"`;
-      
-      const amount = sale.total_amount;
-      const status = sale.status;
-
-      return [date, time, customer, motorcycle, itemsFormatted, amount, status].join(';');
+        
+      return {
+        'Fecha': new Date(sale.date).toLocaleDateString('es-CO'),
+        'Hora': new Date(sale.date).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' }),
+        'Cliente': sale.customer_name || 'Consumidor Final',
+        'Motocicleta': sale.motorcycle || 'N/A',
+        'Artículos': itemsStr,
+        'Monto Total': Number(sale.total_amount),
+        'Estado': sale.status
+      };
     });
 
-    const utf8BOM = '\uFEFF';
-    const finalCsv = utf8BOM + [headers.join(';'), ...csvContent].join('\n');
-    
-    // Use an encoded URI instead of a blob, which avoids Blob sandbox restrictions on some browsers/Next setups
-    const encodedUri = 'data:text/csv;charset=utf-8,' + encodeURIComponent(finalCsv);
-    const link = document.createElement('a');
-    link.href = encodedUri;
-    link.setAttribute('download', `Reporte_Ventas_Marnak_${startDate}_al_${endDate}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    // Create a new workbook and add the worksheet
+    const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Ventas");
+
+    // Adjust column widths roughly
+    worksheet['!cols'] = [
+      { wch: 12 }, // Fecha
+      { wch: 10 }, // Hora
+      { wch: 25 }, // Cliente
+      { wch: 15 }, // Moto
+      { wch: 40 }, // Artículos
+      { wch: 15 }, // Monto
+      { wch: 15 }  // Estado
+    ];
+
+    // Generate buffer and trigger download
+    XLSX.writeFile(workbook, `Reporte_Ventas_Marnak_${startDate}_al_${endDate}.xlsx`);
   };
   
   // Calculate best-selling item
