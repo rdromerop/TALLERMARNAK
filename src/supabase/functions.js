@@ -1,7 +1,8 @@
-import { supabase } from './client';
+import { createClient } from '@/utils/supabase/client';
 
 // --- Inventory Functions ---
 export async function getInventory() {
+  const supabase = createClient();
   const { data, error } = await supabase
     .from('inventory')
     .select('*')
@@ -11,6 +12,7 @@ export async function getInventory() {
 }
 
 export async function addInventoryItem(item) {
+  const supabase = createClient();
   const { data, error } = await supabase
     .from('inventory')
     .insert([item])
@@ -20,6 +22,7 @@ export async function addInventoryItem(item) {
 }
 
 export async function updateInventoryItem(id, updates) {
+  const supabase = createClient();
   const { data, error } = await supabase
     .from('inventory')
     .update(updates)
@@ -30,6 +33,7 @@ export async function updateInventoryItem(id, updates) {
 }
 
 export async function adjustInventoryStock(id, newStock, reason, productName, changeAmount) {
+  const supabase = createClient();
   // 1. Update stock
   const { data, error } = await supabase
     .from('inventory')
@@ -54,6 +58,7 @@ export async function adjustInventoryStock(id, newStock, reason, productName, ch
 }
 
 export async function getInventoryLogs() {
+  const supabase = createClient();
   try {
      const { data, error } = await supabase
        .from('inventory_logs')
@@ -69,6 +74,7 @@ export async function getInventoryLogs() {
 }
 
 export async function deleteInventoryItem(id) {
+  const supabase = createClient();
   const { error } = await supabase
     .from('inventory')
     .delete()
@@ -78,6 +84,7 @@ export async function deleteInventoryItem(id) {
 
 // --- Expenses Functions ---
 export async function getExpenses() {
+  const supabase = createClient();
   const { data, error } = await supabase
     .from('expenses')
     .select('*')
@@ -87,6 +94,7 @@ export async function getExpenses() {
 }
 
 export async function addExpense(expense) {
+  const supabase = createClient();
   const { data, error } = await supabase
     .from('expenses')
     .insert([expense])
@@ -96,6 +104,7 @@ export async function addExpense(expense) {
 }
 
 export async function updateExpense(id, updates) {
+  const supabase = createClient();
   const { data, error } = await supabase
     .from('expenses')
     .update(updates)
@@ -106,6 +115,7 @@ export async function updateExpense(id, updates) {
 }
 
 export async function deleteExpense(id) {
+  const supabase = createClient();
   const { error } = await supabase
     .from('expenses')
     .delete()
@@ -115,6 +125,7 @@ export async function deleteExpense(id) {
 
 // --- Sales Functions ---
 export async function getSales() {
+  const supabase = createClient();
   const { data, error } = await supabase
     .from('sales')
     .select('*, sale_items(*)')
@@ -124,6 +135,7 @@ export async function getSales() {
 }
 
 export async function createSale(sale, items) {
+  const supabase = createClient();
   // 1. Create the sale record
   const { data: saleData, error: saleError } = await supabase
     .from('sales')
@@ -165,8 +177,8 @@ export async function createSale(sale, items) {
 }
 
 export async function getSalesByDate(dateStr) {
+  const supabase = createClient();
   // dateStr is 'YYYY-MM-DD'
-  // Correctly handle UTC start and end for that day
   const startDate = `${dateStr}T00:00:00.000Z`;
   const endDate = `${dateStr}T23:59:59.999Z`;
   
@@ -182,6 +194,7 @@ export async function getSalesByDate(dateStr) {
 }
 
 export async function getSalesByDateRange(startStr, endStr) {
+  const supabase = createClient();
   const startDate = `${startStr}T00:00:00.000Z`;
   const endDate = `${endStr}T23:59:59.999Z`;
   
@@ -197,6 +210,7 @@ export async function getSalesByDateRange(startStr, endStr) {
 }
 
 export async function cancelSale(saleId) {
+  const supabase = createClient();
   // 1. Get the sale and its items
   const { data: saleData, error: saleError } = await supabase
     .from('sales')
@@ -213,7 +227,6 @@ export async function cancelSale(saleId) {
   // 2. Update inventory stock (Revert)
   for (const item of saleData.sale_items) {
      if (item.inventory_id && item.quantity > 0) {
-        // Try to revert stock using the existing decrement_stock with a negative amount
         const { error: rpcError } = await supabase.rpc('decrement_stock', { 
            row_id: item.inventory_id, 
            amount: -item.quantity // Revert stock
@@ -221,7 +234,6 @@ export async function cancelSale(saleId) {
         
         if (rpcError) {
            console.error('RPC Error reverting stock, falling back to manual update:', rpcError);
-           // Fallback if RPC doesn't support negative or errors out:
            const { data: invItem } = await supabase.from('inventory').select('stock').eq('id', item.inventory_id).single();
            if (invItem) {
                await supabase.from('inventory').update({ stock: invItem.stock + item.quantity }).eq('id', item.inventory_id);
@@ -240,6 +252,7 @@ export async function cancelSale(saleId) {
 }
 
 export async function updateSaleStatus(saleId, status) {
+  const supabase = createClient();
   const { data, error } = await supabase
     .from('sales')
     .update({ status: status })
@@ -252,6 +265,7 @@ export async function updateSaleStatus(saleId, status) {
 
 // --- Mechanics & Repairs Functions ---
 export async function getMechanics() {
+  const supabase = createClient();
   const { data, error } = await supabase
     .from('mechanics')
     .select('*, repairs(*)')
@@ -261,6 +275,7 @@ export async function getMechanics() {
 }
 
 export async function addMechanic(name) {
+  const supabase = createClient();
   const { data, error } = await supabase
     .from('mechanics')
     .insert([{ name }])
@@ -270,6 +285,7 @@ export async function addMechanic(name) {
 }
 
 export async function updateMechanic(id, name) {
+  const supabase = createClient();
   const { data, error } = await supabase
     .from('mechanics')
     .update({ name })
@@ -280,6 +296,7 @@ export async function updateMechanic(id, name) {
 }
 
 export async function addRepair(repair) {
+  const supabase = createClient();
   const { data, error } = await supabase
     .from('repairs')
     .insert([repair])
@@ -289,6 +306,7 @@ export async function addRepair(repair) {
 }
 
 export async function updateRepairStatus(id, status) {
+  const supabase = createClient();
   const { data, error } = await supabase
     .from('repairs')
     .update({ status })
@@ -299,6 +317,7 @@ export async function updateRepairStatus(id, status) {
 }
 
 export async function deleteMechanic(id) {
+  const supabase = createClient();
   const { error } = await supabase
     .from('mechanics')
     .delete()

@@ -108,7 +108,7 @@ export default function InventoryPage() {
       if (error.code === '23505') {
         alert('Este SKU ya existe. Por favor usa un código diferente.');
       } else {
-        alert('Hubo un error al guardar el artículo.');
+        alert('Error guardando: ' + (error.message || JSON.stringify(error)));
       }
     } finally {
       setIsSubmitting(false);
