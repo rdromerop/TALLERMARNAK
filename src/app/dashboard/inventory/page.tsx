@@ -53,6 +53,22 @@ export default function InventoryPage() {
 
   const handleOpenAddModal = () => {
     resetForm();
+    
+    let maxSku = 0;
+    inventory.forEach(item => {
+      if (item.sku) {
+        const numericPart = item.sku.replace(/\D/g, '');
+        if (numericPart) {
+          const num = parseInt(numericPart, 10);
+          if (!isNaN(num)) {
+            maxSku = Math.max(maxSku, num);
+          }
+        }
+      }
+    });
+    const nextSku = String(maxSku + 1).padStart(6, '0');
+    setSku(nextSku);
+
     setIsModalOpen(true);
   };
 
@@ -90,7 +106,7 @@ export default function InventoryPage() {
         sku,
         category,
         price: Number(price),
-        cost_price: Number(costPrice) || 0,
+        cost_price: costPrice === '' ? null : Number(costPrice),
         stock: Number(quantity)
       };
 
@@ -516,9 +532,8 @@ export default function InventoryPage() {
                       type="text" 
                       value={sku}
                       onChange={(e) => setSku(e.target.value)}
-                      placeholder="SKU-001"
+                      placeholder="Ej. 000001"
                       className="w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white transition-all"
-                      required
                     />
                   </div>
                 </div>
@@ -549,7 +564,7 @@ export default function InventoryPage() {
                       type="number" 
                       value={costPrice}
                       onChange={(e) => setCostPrice(e.target.value)}
-                      placeholder="0"
+                      placeholder="Opcional"
                       className="w-full pl-8 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white transition-all"
                     />
                   </div>
