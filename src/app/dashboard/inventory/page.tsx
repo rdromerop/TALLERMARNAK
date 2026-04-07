@@ -24,7 +24,7 @@ export default function InventoryPage() {
   const [filterStatus, setFilterStatus] = useState('All');
   const [sortConfig, setSortConfig] = useState<{ key: string, direction: 'asc' | 'desc' }>({ key: 'name', direction: 'asc' });
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
+  const itemsPerPage = 20;
 
   // Stock Adjustment State
   const [isAdjustModalOpen, setIsAdjustModalOpen] = useState(false);
