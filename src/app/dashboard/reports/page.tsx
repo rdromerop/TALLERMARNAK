@@ -318,7 +318,7 @@ export default function ReportsPage() {
                           />
                           <CartesianGrid vertical={false} stroke="#f1f5f9" />
                           <Tooltip 
-                            formatter={(value: number) => [`$ ${value.toLocaleString('es-CO')}`, 'Ingresos']}
+                            formatter={(value: any) => [`$ ${Number(value).toLocaleString('es-CO')}`, 'Ingresos']}
                             labelStyle={{ color: '#64748b' }}
                             contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)' }}
                           />
@@ -365,7 +365,7 @@ export default function ReportsPage() {
                             ))}
                           </Pie>
                           <Tooltip 
-                            formatter={(value: number) => [`${value} unidades`, 'Vendido']}
+                            formatter={(value: any) => [`${value} unidades`, 'Vendido']}
                             itemStyle={{ color: '#fff' }}
                             contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '8px' }}
                           />
