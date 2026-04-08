@@ -32,11 +32,13 @@ export function MetricCard({ title, value, trend, icon: Icon, iconBg, iconColor,
         )}
       </div>
 
-      {/* Tooltip Content */}
+      {/* Wrapper transparente para mantener el hover al pasar el ratón hacia abajo */}
       {tooltip && (
-        <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-max min-w-[200px] max-w-[300px] bg-slate-900 border border-slate-800 text-white text-sm rounded-xl py-2 px-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 shadow-xl pointer-events-none text-left">
-          <div className="absolute -top-1.5 left-1/2 -translate-x-1/2 border-x-4 border-x-transparent border-b-4 border-b-slate-900" />
-          {tooltip}
+        <div className="absolute top-full left-1/2 -translate-x-1/2 pt-2 z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 w-max min-w-[200px] max-w-[300px]">
+          <div className="bg-slate-900 border border-slate-800 text-white text-sm rounded-xl py-2 px-3 shadow-xl pointer-events-auto text-left relative">
+            <div className="absolute -top-1.5 left-1/2 -translate-x-1/2 border-x-4 border-x-transparent border-b-4 border-b-slate-900" />
+            {tooltip}
+          </div>
         </div>
       )}
     </div>
