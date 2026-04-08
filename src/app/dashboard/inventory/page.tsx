@@ -208,7 +208,7 @@ export default function InventoryPage() {
     const matchesCategory = filterCategory === 'All' || item.category === filterCategory;
     
     const isOutOfStock = Number(item.stock) <= 0;
-    const isLowStock = Number(item.stock) <= 5 && !isOutOfStock;
+    const isLowStock = Number(item.stock) <= 2 && !isOutOfStock;
     let matchesStatus = true;
     if (filterStatus === 'Agotado') matchesStatus = isOutOfStock;
     if (filterStatus === 'Stock Bajo') matchesStatus = isLowStock;
@@ -242,7 +242,7 @@ export default function InventoryPage() {
   }, [searchTerm, filterCategory, filterStatus]);
 
   const totalItems = inventory.length;
-  const lowStockItems = inventory.filter(item => item.stock <= 5 && item.stock > 0).length;
+  const lowStockItems = inventory.filter(item => item.stock <= 2 && item.stock > 0).length;
   const outOfStockItems = inventory.filter(item => item.stock <= 0).length;
 
   return (
@@ -386,7 +386,7 @@ export default function InventoryPage() {
               ) : (
                 paginatedInventory.map((item) => {
                   const isOutOfStock = Number(item.stock) <= 0;
-                  const isLowStock = Number(item.stock) <= 5 && !isOutOfStock;
+                  const isLowStock = Number(item.stock) <= 2 && !isOutOfStock;
                   return (
                     <tr key={item.id} className={`hover:bg-slate-50/50 transition-colors group ${isOutOfStock ? 'bg-rose-50/20' : isLowStock ? 'bg-amber-50/20' : ''}`}>
                       <td className="px-6 py-4 font-medium text-slate-900">{item.name}</td>

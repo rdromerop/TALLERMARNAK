@@ -65,7 +65,7 @@ export default function DashboardPage() {
       });
 
       // Inventory Alerts
-      const lowStockItems = inventory.filter((item: any) => item.stock <= 5);
+      const lowStockItems = inventory.filter((item: any) => item.stock <= 2);
       const stockAlerts = lowStockItems.length;
 
       // Mechanics / Repairs Today

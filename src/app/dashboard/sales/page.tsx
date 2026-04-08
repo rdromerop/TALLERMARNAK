@@ -715,7 +715,7 @@ export default function SalesPage() {
                         <span className="text-[10px] font-mono bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded border border-slate-200">{product.sku}</span>
                       </div>
                       <div className="text-xs text-slate-500 mt-1">
-                        Stock disponible: <span className={product.stock <= 5 ? 'text-rose-500 font-bold' : 'text-emerald-600 font-bold'}>{product.stock}</span>
+                        Stock disponible: <span className={product.stock <= 2 ? 'text-rose-500 font-bold' : 'text-emerald-600 font-bold'}>{product.stock}</span>
                       </div>
                     </div>
                     <div className="flex items-center gap-4">
