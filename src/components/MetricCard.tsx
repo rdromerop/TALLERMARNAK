@@ -13,7 +13,7 @@ interface MetricCardProps {
 
 export function MetricCard({ title, value, trend, icon: Icon, iconBg, iconColor, tooltip }: MetricCardProps) {
   return (
-    <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-[0_2px_10px_-3px_rgba(6,81,237,0.05)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.04)] transition-all duration-300 relative overflow-visible group">
+    <div className="bg-white rounded-2xl border-2 border-slate-200 hover:border-blue-400 p-6 shadow-[0_2px_10px_-3px_rgba(6,81,237,0.05)] hover:shadow-2xl hover:scale-105 hover:z-20 transition-all duration-300 relative overflow-visible group cursor-default">
       <div className={`absolute -right-6 -top-6 w-24 h-24 rounded-full opacity-20 blur-2xl group-hover:scale-150 transition-transform duration-500 ${iconBg}`} />
       
       <div className="flex items-center justify-between mb-4 relative z-10">
