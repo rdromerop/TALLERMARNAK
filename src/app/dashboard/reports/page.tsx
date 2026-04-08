@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { Download, Calendar as CalendarIcon, Loader2, FileText, Search, TrendingUp, Wallet, Package, BarChart3, Activity, FileSpreadsheet, ArrowUpDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { getSalesByDateRange } from '@/supabase/functions';
 import * as XLSX from 'xlsx';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 
 // Utility for text search normalization
 const normalizeText = (text: any) => {
@@ -164,18 +165,22 @@ export default function ReportsPage() {
     XLSX.writeFile(workbook, `Reporte_Ventas_Marnak_${startDate}_al_${endDate}.xlsx`);
   };
   
-  // Calculate best-selling item
+  // Calculate best-selling items for pie chart
   const itemCounts = sales.reduce((acc: Record<string, number>, sale) => {
-    sale.sale_items.forEach((item: any) => {
-      acc[item.item_name] = (acc[item.item_name] || 0) + item.quantity;
-    });
+    if (sale.sale_items) {
+      sale.sale_items.forEach((item: any) => {
+        acc[item.item_name] = (acc[item.item_name] || 0) + item.quantity;
+      });
+    }
     return acc;
   }, {});
   
-  const entries = Object.entries(itemCounts);
-  const topProduct = entries.length > 0 
-    ? entries.reduce((a, b) => a[1] > b[1] ? a : b) 
-    : null;
+  const pieData = Object.entries(itemCounts)
+    .map(([name, value]) => ({ name, value }))
+    .sort((a, b) => (b.value as number) - (a.value as number))
+    .slice(0, 5); // Take top 5
+    
+  const PIE_COLORS = ['#f43f5e', '#ec4899', '#d946ef', '#a855f7', '#8b5cf6'];
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -289,68 +294,95 @@ export default function ReportsPage() {
                     No hay datos de ingresos en este rango
                   </div>
                 ) : (
-                  <div className="h-64 flex items-end gap-2 sm:gap-4 relative pt-6">
-                    {/* Y-axis rough guides */}
-                    <div className="absolute inset-0 flex flex-col justify-between pointer-events-none pb-8 text-[10px] text-slate-300">
-                       <div className="border-b border-slate-100 w-full relative"><span className="absolute -top-2 bg-white pr-2">${(maxChartVal/1000).toFixed(0)}k</span></div>
-                       <div className="border-b border-slate-100 w-full relative"><span className="absolute -top-2 bg-white pr-2">${(maxChartVal/2000).toFixed(0)}k</span></div>
-                       <div className="border-b border-slate-100 w-full relative"><span className="absolute -top-2 bg-white pr-2">0</span></div>
-                    </div>
-                    
-                    {/* Bars */}
-                    <div className="w-full flex justify-between items-end h-[calc(100%-2rem)] z-10 px-8">
-                       {chartData.map((data, i) => {
-                         const heightPct = Math.max((data.amount / maxChartVal) * 100, 2); // Min 2% height for visibility
-                         return (
-                           <div key={i} className="flex flex-col items-center group relative w-full h-full justify-end">
-                              {/* Tooltip */}
-                              <div className="absolute -top-10 opacity-0 group-hover:opacity-100 transition-opacity bg-slate-900 text-white text-[10px] px-2 py-1 rounded whitespace-nowrap z-20 pointer-events-none">
-                                ${data.amount.toLocaleString('es-CO')}
-                              </div>
-                              {/* Bar */}
-                              <div 
-                                className="w-full max-w-[40px] bg-blue-500 rounded-t-md hover:bg-blue-600 transition-all cursor-crosshair min-h-[4px]"
-                                style={{ height: `${heightPct}%` }}
-                              ></div>
-                              {/* X-axis Label */}
-                              <span className="absolute -bottom-6 text-[10px] text-slate-500 whitespace-nowrap rotate-45 origin-left sm:rotate-0 sm:origin-center">{data.shortDate}</span>
-                           </div>
-                         )
-                       })}
-                    </div>
-                  </div>
+                   <div className="h-80 w-full pt-4">
+                     <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 20 }}>
+                          <defs>
+                            <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8}/>
+                              <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                            </linearGradient>
+                          </defs>
+                          <XAxis 
+                            dataKey="shortDate" 
+                            axisLine={false} 
+                            tickLine={false} 
+                            tick={{ fontSize: 11, fill: '#94a3b8' }} 
+                            dy={10} 
+                          />
+                          <YAxis 
+                            axisLine={false} 
+                            tickLine={false} 
+                            tick={{ fontSize: 11, fill: '#94a3b8' }} 
+                            tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
+                          />
+                          <CartesianGrid vertical={false} stroke="#f1f5f9" />
+                          <Tooltip 
+                            formatter={(value: number) => [`$ ${value.toLocaleString('es-CO')}`, 'Ingresos']}
+                            labelStyle={{ color: '#64748b' }}
+                            contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)' }}
+                          />
+                          <Area 
+                            type="monotone" 
+                            dataKey="amount" 
+                            stroke="#3b82f6" 
+                            strokeWidth={3}
+                            fillOpacity={1} 
+                            fill="url(#colorSales)" 
+                          />
+                        </AreaChart>
+                     </ResponsiveContainer>
+                   </div>
                 )}
              </div>
 
              <div className="bg-slate-900 rounded-2xl p-6 shadow-sm text-white relative overflow-hidden flex flex-col justify-between">
                 <div className="absolute -right-10 -bottom-10 w-40 h-40 bg-rose-500 rounded-full opacity-20 blur-3xl" />
                 
-                <div>
-                  <h3 className="font-bold text-slate-300 flex items-center gap-2 mb-6">
+                <div className="flex-1 flex flex-col relative z-10">
+                  <h3 className="font-bold text-slate-300 flex items-center gap-2 mb-2">
                      <Package className="w-5 h-5 text-rose-400" />
-                     Producto Estrella
+                     Productos Estrella
                   </h3>
+                  <p className="text-xs text-slate-400 uppercase tracking-wider mb-4">Top 5 más vendidos</p>
                   
-                  {topProduct ? (
-                    <div className="space-y-4 relative z-10">
-                      <div>
-                        <p className="text-xs text-slate-400 uppercase tracking-wider mb-1">Más Vendido</p>
-                        <p className="text-xl font-bold text-rose-50 truncate pb-1 border-b border-slate-700/50">{topProduct[0]}</p>
-                      </div>
-                      <div className="flex items-end justify-between">
-                         <div>
-                           <p className="text-xs text-slate-400 uppercase tracking-wider mb-1">Unidades</p>
-                           <p className="text-3xl font-black text-rose-400">{topProduct[1]}</p>
-                         </div>
-                      </div>
+                  {pieData.length > 0 ? (
+                    <div className="h-60 w-full flex-1">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={pieData}
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={60}
+                            outerRadius={80}
+                            paddingAngle={5}
+                            dataKey="value"
+                            stroke="none"
+                          >
+                            {pieData.map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
+                            ))}
+                          </Pie>
+                          <Tooltip 
+                            formatter={(value: number) => [`${value} unidades`, 'Vendido']}
+                            itemStyle={{ color: '#fff' }}
+                            contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '8px' }}
+                          />
+                          <Legend 
+                             verticalAlign="bottom" 
+                             height={36} 
+                             iconType="circle"
+                             formatter={(value) => <span className="text-xs text-slate-300 truncate inline-block max-w-[80px]" title={value}>{value}</span>}
+                          />
+                        </PieChart>
+                      </ResponsiveContainer>
                     </div>
                   ) : (
-                    <p className="text-slate-500 text-sm">Sin ventas registradas en el período.</p>
+                    <div className="flex-1 flex items-center justify-center text-slate-500 text-sm">
+                       Sin ventas registradas en el período.
+                    </div>
                   )}
-                </div>
-                
-                <div className="mt-8 pt-4 border-t border-slate-800 relative z-10">
-                   <p className="text-xs text-slate-400 leading-relaxed">Este artículo es el que ha generado más volumen de salida del inventario en estas fechas.</p>
                 </div>
              </div>
           </div>
