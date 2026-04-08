@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { MetricCard } from '@/components/MetricCard';
-import { BadgeDollarSign, CreditCard, TrendingUp, Wallet, Wrench, AlertTriangle, Loader2, Package } from 'lucide-react';
+import { BadgeDollarSign, CreditCard, TrendingUp, Wallet, Wrench, AlertTriangle, Loader2, Package, Coins } from 'lucide-react';
 import { getSales, getExpenses, getInventory, getMechanics } from '@/supabase/functions';
 
 export default function DashboardPage() {
@@ -10,6 +10,7 @@ export default function DashboardPage() {
     salesToday: 0,
     salesMonth: 0,
     netProfitMonth: 0,
+    profitToday: 0,
     expensesMonth: 0,
     activeRepairs: 0,
     stockAlerts: 0,
@@ -41,17 +42,19 @@ export default function DashboardPage() {
       let salesToday = 0;
       let salesMonth = 0;
       let profitMonth = 0;
+      let profitToday = 0;
       sales.forEach((sale: any) => {
         const saleDate = new Date(sale.date);
         const saleDateStr = saleDate.toISOString().split('T')[0];
+        const saleProfit = sale.sale_items?.reduce((sum: number, item: any) => sum + Number(item.profit || 0), 0) || 0;
         
         if (saleDateStr === todayStr) {
           salesToday += Number(sale.total_amount);
+          profitToday += saleProfit;
         }
         
         if (saleDate.getMonth() === currentMonth && saleDate.getFullYear() === currentYear) {
           salesMonth += Number(sale.total_amount);
-          const saleProfit = sale.sale_items?.reduce((sum: number, item: any) => sum + Number(item.profit || 0), 0) || 0;
           profitMonth += saleProfit;
         }
       });
@@ -85,7 +88,8 @@ export default function DashboardPage() {
         salesToday,
         salesMonth,
         expensesMonth,
-        netProfitMonth: profitMonth - expensesMonth,
+        netProfitMonth: profitMonth,
+        profitToday,
         activeRepairs: repairsCountToday,
         stockAlerts,
         inventoryValue,
@@ -144,11 +148,18 @@ export default function DashboardPage() {
           iconColor="text-emerald-600"
         />
         <MetricCard
-          title="Ganancia Neta (Mes)"
+          title="Ganancias (Mes)"
           value={`$ ${metrics.netProfitMonth.toLocaleString('es-CO')}`}
           icon={Wallet}
           iconBg="bg-brand-gold/10"
           iconColor="text-brand-gold"
+        />
+        <MetricCard
+          title="Ganancias de Hoy"
+          value={`$ ${metrics.profitToday.toLocaleString('es-CO')}`}
+          icon={Coins}
+          iconBg="bg-teal-100"
+          iconColor="text-teal-600"
         />
         <MetricCard
           title="Gastos del Mes"
