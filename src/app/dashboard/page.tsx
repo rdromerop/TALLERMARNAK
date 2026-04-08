@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { MetricCard } from '@/components/MetricCard';
-import { BadgeDollarSign, CreditCard, TrendingUp, Wallet, Wrench, AlertTriangle, Loader2 } from 'lucide-react';
+import { BadgeDollarSign, CreditCard, TrendingUp, Wallet, Wrench, AlertTriangle, Loader2, Package } from 'lucide-react';
 import { getSales, getExpenses, getInventory, getMechanics } from '@/supabase/functions';
 
 export default function DashboardPage() {
@@ -13,6 +13,7 @@ export default function DashboardPage() {
     expensesMonth: 0,
     activeRepairs: 0,
     stockAlerts: 0,
+    inventoryValue: 0,
     lowStockItems: [] as any[]
   });
   const [isLoading, setIsLoading] = useState(true);
@@ -64,9 +65,14 @@ export default function DashboardPage() {
         }
       });
 
-      // Inventory Alerts
+      // Inventory Alerts y Valor
       const lowStockItems = inventory.filter((item: any) => item.stock <= 2);
       const stockAlerts = lowStockItems.length;
+
+      let inventoryValue = 0;
+      inventory.forEach((item: any) => {
+        inventoryValue += Number(item.stock || 0) * Number(item.purchase_price || 0);
+      });
 
       // Mechanics / Repairs Today
       let repairsCountToday = 0;
@@ -82,6 +88,7 @@ export default function DashboardPage() {
         netProfitMonth: profitMonth - expensesMonth,
         activeRepairs: repairsCountToday,
         stockAlerts,
+        inventoryValue,
         lowStockItems
       });
 
@@ -156,6 +163,13 @@ export default function DashboardPage() {
           icon={Wrench}
           iconBg="bg-amber-100"
           iconColor="text-amber-600"
+        />
+        <MetricCard
+          title="Valor del Inventario"
+          value={`$ ${metrics.inventoryValue.toLocaleString('es-CO')}`}
+          icon={Package}
+          iconBg="bg-indigo-100"
+          iconColor="text-indigo-600"
         />
         <MetricCard
           title="Alertas de Stock"
