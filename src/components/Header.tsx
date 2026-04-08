@@ -7,7 +7,7 @@ export async function Header() {
   const { data: { user } } = await supabase.auth.getUser();
 
   return (
-    <header className="h-16 border-b border-slate-200 bg-white flex items-center justify-between px-6 sticky top-0 z-10">
+    <header className="h-16 border-b border-slate-200 bg-white flex items-center justify-between px-6 sticky top-0 z-50">
       <div className="flex items-center gap-4">
         {/* Placeholder for breadcrumbs or mobile menu toggle */}
         <h2 className="text-lg font-semibold text-slate-800 md:hidden">Marnak</h2>
