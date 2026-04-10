@@ -54,20 +54,35 @@ export default function RepairsPage() {
     try {
       setIsLoading(true);
       const data = await getMechanics();
+      
+      const now = new Date();
+      const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
       // Map repairs to jobs
-      const formattedData = data.map((m: any) => ({
-        id: m.id,
-        name: m.name,
-        jobs: (m.repairs || []).map((r: any) => ({
-          id: r.id,
-          time: r.time,
-          task: r.task,
-          cost: Number(r.cost),
-          status: r.status || 'Completado', // Default to completed for old data
-          commission_percentage: r.commission_percentage ? Number(r.commission_percentage) : undefined,
-          commission_amount: r.commission_amount ? Number(r.commission_amount) : undefined
-        }))
-      }));
+      const formattedData = data.map((m: any) => {
+        // Filter only today's repairs
+        const todayRepairs = (m.repairs || []).filter((r: any) => {
+          if (!r.created_at) return true; // keep if no date just in case
+          const rDate = new Date(r.created_at);
+          const rDateStr = `${rDate.getFullYear()}-${String(rDate.getMonth() + 1).padStart(2, '0')}-${String(rDate.getDate()).padStart(2, '0')}`;
+          return rDateStr === todayStr;
+        });
+
+        return {
+          id: m.id,
+          name: m.name,
+          jobs: todayRepairs.map((r: any) => ({
+            id: r.id,
+            time: r.time,
+            task: r.task,
+            cost: Number(r.cost),
+            status: r.status || 'Completado', // Default to completed for old data
+            commission_percentage: r.commission_percentage ? Number(r.commission_percentage) : undefined,
+            commission_amount: r.commission_amount ? Number(r.commission_amount) : undefined
+          }))
+        };
+      });
+      
       setMechanics(formattedData);
     } catch (error) {
       console.error('Error fetching mechanics:', error);

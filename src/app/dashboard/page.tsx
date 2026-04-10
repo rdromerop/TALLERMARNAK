@@ -80,7 +80,11 @@ export default function DashboardPage() {
       // Mechanics / Repairs Today
       let repairsCountToday = 0;
       mechanics.forEach((mech: any) => {
-        const todayRepairs = (mech.repairs || []).filter((r: any) => r.date === todayStr);
+        const todayRepairs = (mech.repairs || []).filter((r: any) => {
+          if (!r.created_at) return false;
+          const rDateStr = new Date(r.created_at).toISOString().split('T')[0];
+          return rDateStr === todayStr;
+        });
         repairsCountToday += todayRepairs.length;
       });
 
