@@ -109,6 +109,15 @@ export default function SalesPage() {
     }));
   };
 
+  const updatePrice = (id: string, newPrice: number) => {
+    setCart(prev => prev.map(item => {
+      if (item.id === id) {
+        return { ...item, price: newPrice >= 0 ? newPrice : 0 };
+      }
+      return item;
+    }));
+  };
+
   const removeFromCart = (id: string) => {
     setCart(prev => prev.filter(item => item.id !== id));
   };
@@ -303,7 +312,15 @@ export default function SalesPage() {
                     <div key={item.id} className="p-4 flex items-center gap-4 hover:bg-slate-50 transition-colors group">
                       <div className="flex-1">
                         <h4 className="font-medium text-slate-900">{item.name}</h4>
-                        <p className="text-sm text-slate-500">$ {item.price.toLocaleString('es-CO')}</p>
+                        <div className="flex items-center gap-1 mt-1">
+                          <span className="text-sm text-slate-500 font-medium">$</span>
+                          <input 
+                             type="number"
+                             value={item.price === 0 ? '' : item.price}
+                             onChange={(e) => updatePrice(item.id, Number(e.target.value))}
+                             className="w-24 px-2 py-0.5 text-sm font-medium border border-slate-200 rounded-md text-slate-700 focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 bg-white transition-all hover:border-slate-300"
+                          />
+                        </div>
                       </div>
                       <div className="flex items-center gap-3 bg-slate-100 rounded-lg p-1">
                         <button 
