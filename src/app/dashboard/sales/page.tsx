@@ -42,6 +42,13 @@ export default function SalesPage() {
   // Receipt Modal State
   const [selectedReceipt, setSelectedReceipt] = useState<any>(null);
 
+  // Quick Sale State
+  const [isQuickSaleModalOpen, setIsQuickSaleModalOpen] = useState(false);
+  const [qsDescription, setQsDescription] = useState('');
+  const [qsCustomer, setQsCustomer] = useState('Consumidor Final');
+  const [qsAmount, setQsAmount] = useState('');
+  const [qsPaymentMethod, setQsPaymentMethod] = useState('Efectivo');
+
   useEffect(() => {
     fetchInventory();
     fetchSales();
@@ -167,6 +174,51 @@ export default function SalesPage() {
       alert('Hubo un error al procesar la venta.');
     } finally {
       setIsProcessingSale(false);
+    }
+  };
+
+  const handleQuickSale = async () => {
+    if (!qsDescription || !qsAmount) {
+      alert('Por favor completa la descripción y el monto.');
+      return;
+    }
+    if (isProcessingSale) return;
+
+    try {
+      setIsProcessingSale(true);
+      
+      const sale = {
+        customer_name: qsCustomer || 'Consumidor Final',
+        motorcycle: '',
+        total_amount: Number(qsAmount),
+        status: qsPaymentMethod === 'Crédito' ? 'Pendiente' : 'Pagado',
+        payment_method: qsPaymentMethod
+      };
+
+      const saleItems = [{
+        item_name: `(Extra) ${qsDescription}`,
+        quantity: 1,
+        price: Number(qsAmount),
+        unit_cost: 0,
+        profit: Number(qsAmount),
+        subtotal: Number(qsAmount),
+        inventory_id: null
+      }];
+
+      await createSale(sale, saleItems);
+      
+      alert('¡Venta rápida registrada con éxito!');
+      setIsQuickSaleModalOpen(false);
+      setQsDescription('');
+      setQsAmount('');
+      setQsCustomer('Consumidor Final');
+      setQsPaymentMethod('Efectivo');
+      fetchSales();
+    } catch (error) {
+       console.error('Error in quick sale:', error);
+       alert('Hubo un error al registrar la venta rápida.');
+    } finally {
+       setIsProcessingSale(false);
     }
   };
 
@@ -450,6 +502,15 @@ export default function SalesPage() {
                   <p className="text-xs text-slate-500">{isViewingTodayOnly ? 'Resumen de transacciones del día' : 'Mostrando resultados filtrados'}</p>
                </div>
             </div>
+            <div className="flex items-center gap-2 mt-4 xl:mt-0">
+                <button 
+                  onClick={() => setIsQuickSaleModalOpen(true)}
+                  className="bg-emerald-600 text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-emerald-700 transition-all flex items-center gap-2 shadow-sm"
+                >
+                  <Banknote className="w-4 h-4" />
+                  Ingreso Extra
+                </button>
+             </div>
           </div>
           
           {/* Filters Bar */}
@@ -746,6 +807,89 @@ export default function SalesPage() {
                   </button>
                 ))
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Venta Rápida Modal */}
+      {isQuickSaleModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-300">
+            <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-emerald-50">
+              <h3 className="text-xl font-bold text-emerald-900 flex items-center gap-2">
+                <Banknote className="w-6 h-6 text-emerald-600" />
+                Ingreso Extra / Rápido
+              </h3>
+              <button onClick={() => setIsQuickSaleModalOpen(false)} className="p-2 hover:bg-emerald-100 rounded-full transition-colors">
+                 <X className="w-6 h-6 text-emerald-600/50 hover:text-emerald-600" />
+              </button>
+            </div>
+            
+            <div className="p-6 space-y-4">
+              <div className="space-y-1">
+                 <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Cliente (Opcional)</label>
+                 <input 
+                   type="text" 
+                   value={qsCustomer}
+                   onChange={(e) => setQsCustomer(e.target.value)}
+                   className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                 />
+              </div>
+              <div className="space-y-1">
+                 <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Descripción del Ingreso *</label>
+                 <input 
+                   type="text" 
+                   value={qsDescription}
+                   onChange={(e) => setQsDescription(e.target.value)}
+                   placeholder="Ej. Propina, Limpieza, Servicio externo..." 
+                   className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                   autoFocus
+                 />
+              </div>
+              <div className="space-y-1">
+                 <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Monto Total (COP) *</label>
+                 <div className="relative">
+                   <span className="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-slate-400">$</span>
+                   <input 
+                     type="number" 
+                     value={qsAmount}
+                     onChange={(e) => setQsAmount(e.target.value)}
+                     placeholder="0" 
+                     className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 font-bold text-lg"
+                   />
+                 </div>
+              </div>
+              <div className="space-y-1">
+                 <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Método de Pago</label>
+                 <select
+                   value={qsPaymentMethod}
+                   onChange={(e) => setQsPaymentMethod(e.target.value)}
+                   className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 appearance-none font-medium text-slate-700"
+                 >
+                   <option value="Efectivo">Efectivo</option>
+                   <option value="Transferencia">Transferencia (Nequi/Daviplata)</option>
+                   <option value="Tarjeta">Tarjeta (Datafono)</option>
+                   <option value="Crédito">Pendiente por Pagar (Crédito)</option>
+                 </select>
+              </div>
+            </div>
+
+            <div className="p-6 bg-slate-50 border-t border-slate-100 flex gap-3">
+              <button 
+                onClick={() => setIsQuickSaleModalOpen(false)}
+                className="flex-1 px-4 py-3 bg-white text-slate-600 border border-slate-200 rounded-xl font-medium hover:bg-slate-50 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button 
+                disabled={!qsDescription || !qsAmount || isProcessingSale}
+                onClick={handleQuickSale}
+                className="flex-[2] bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-200 text-white px-4 py-3 rounded-xl font-bold transition-all shadow-lg shadow-emerald-200 flex items-center justify-center gap-2"
+              >
+                {isProcessingSale ? <Loader2 className="w-5 h-5 animate-spin" /> : <CheckCircle2 className="w-5 h-5" />}
+                {isProcessingSale ? 'Guardando...' : 'Registrar Ingreso'}
+              </button>
             </div>
           </div>
         </div>
