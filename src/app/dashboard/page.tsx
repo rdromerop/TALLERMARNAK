@@ -5,6 +5,18 @@ import { MetricCard } from '@/components/MetricCard';
 import { BadgeDollarSign, CreditCard, TrendingUp, Wallet, Wrench, AlertTriangle, Loader2, Package, Coins } from 'lucide-react';
 import { getSales, getExpenses, getInventory, getMechanics } from '@/supabase/functions';
 
+import { motion } from 'framer-motion';
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.08
+    }
+  }
+};
+
 export default function DashboardPage() {
   const [metrics, setMetrics] = useState({
     salesToday: 0,
@@ -74,7 +86,7 @@ export default function DashboardPage() {
 
       let inventoryValue = 0;
       inventory.forEach((item: any) => {
-        inventoryValue += Number(item.stock || 0) * Number(item.purchase_price || 0);
+        inventoryValue += Number(item.stock || 0) * Number(item.cost_price || 0);
       });
 
       // Mechanics / Repairs Today
@@ -117,7 +129,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="space-y-8">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-slate-900">Resumen General</h1>
@@ -136,7 +148,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+      <motion.div variants={containerVariants} initial="hidden" animate="show" className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
         <MetricCard
           title="Ventas de Hoy"
           value={`$ ${metrics.salesToday.toLocaleString('es-CO')}`}
@@ -212,9 +224,9 @@ export default function DashboardPage() {
             ) : undefined
           }
         />
-      </div>
+      </motion.div>
 
-      <div className="grid gap-6">
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5, duration: 0.5 }} className="grid gap-6">
         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 overflow-hidden relative group">
           <div className="absolute top-0 right-0 w-64 h-64 bg-blue-50 rounded-full blur-3xl opacity-50 -mr-20 -mt-20 pointer-events-none" />
           <h3 className="text-lg font-semibold text-slate-900 mb-4 relative z-10">Estado del Sistema</h3>
@@ -228,7 +240,7 @@ export default function DashboardPage() {
             </p>
           </div>
         </div>
-      </div>
+      </motion.div>
     </div>
   )
 }

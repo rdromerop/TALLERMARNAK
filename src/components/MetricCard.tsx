@@ -1,5 +1,8 @@
+'use client';
+
 import { LucideIcon } from 'lucide-react';
 import { ReactNode } from 'react';
+import { motion, Variants } from 'framer-motion';
 
 interface MetricCardProps {
   title: string;
@@ -9,11 +12,20 @@ interface MetricCardProps {
   iconBg: string;
   iconColor: string;
   tooltip?: ReactNode;
+  variants?: Variants;
 }
 
-export function MetricCard({ title, value, trend, icon: Icon, iconBg, iconColor, tooltip }: MetricCardProps) {
+const defaultVariants = {
+  hidden: { opacity: 0, y: 20, scale: 0.95 },
+  show: { opacity: 1, y: 0, scale: 1, transition: { type: 'spring', stiffness: 300, damping: 24 } }
+};
+
+export function MetricCard({ title, value, trend, icon: Icon, iconBg, iconColor, tooltip, variants }: MetricCardProps) {
   return (
-    <div className="bg-white rounded-2xl border-2 border-slate-200 hover:border-blue-400 p-6 shadow-[0_2px_10px_-3px_rgba(6,81,237,0.05)] hover:shadow-2xl hover:scale-105 hover:z-20 transition-all duration-300 relative overflow-visible group cursor-default">
+    <motion.div 
+      variants={variants || defaultVariants}
+      className="bg-white rounded-2xl border-2 border-slate-200 hover:border-blue-400 p-6 shadow-[0_2px_10px_-3px_rgba(6,81,237,0.05)] hover:shadow-2xl hover:scale-105 hover:z-20 transition-all duration-300 relative overflow-visible group cursor-default"
+    >
       <div className={`absolute -right-6 -top-6 w-24 h-24 rounded-full opacity-20 blur-2xl group-hover:scale-150 transition-transform duration-500 ${iconBg}`} />
       
       <div className="flex items-center justify-between mb-4 relative z-10">
@@ -41,6 +53,6 @@ export function MetricCard({ title, value, trend, icon: Icon, iconBg, iconColor,
           </div>
         </div>
       )}
-    </div>
+    </motion.div>
   );
 }

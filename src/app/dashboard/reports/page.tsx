@@ -5,6 +5,25 @@ import { Download, Calendar as CalendarIcon, Loader2, FileText, Search, Trending
 import { getSalesByDateRange } from '@/supabase/functions';
 import * as XLSX from 'xlsx';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
+import { motion } from 'framer-motion';
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  show: { opacity: 1, transition: { staggerChildren: 0.1 } }
+};
+const itemVariants = {
+  hidden: { opacity: 0, y: 20, scale: 0.95 },
+  show: { opacity: 1, y: 0, scale: 1, transition: { type: "spring", stiffness: 300, damping: 24 } }
+};
+
+const tableContainerVariants = {
+  hidden: { opacity: 0 },
+  show: { opacity: 1, transition: { staggerChildren: 0.05 } }
+};
+const rowVariants = {
+  hidden: { opacity: 0, x: -20 },
+  show: { opacity: 1, x: 0, transition: { type: "spring", stiffness: 300, damping: 24 } }
+};
 
 // Utility for text search normalization
 const normalizeText = (text: any) => {
@@ -183,7 +202,7 @@ export default function ReportsPage() {
   const PIE_COLORS = ['#f43f5e', '#ec4899', '#d946ef', '#a855f7', '#8b5cf6'];
 
   return (
-    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="space-y-6">
       {/* Header - Hidden in Print */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 print:hidden">
         <div>
@@ -243,8 +262,8 @@ export default function ReportsPage() {
       ) : (
         <>
           {/* Summary Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm relative overflow-hidden group">
+          <motion.div variants={containerVariants} initial="hidden" animate="show" className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <motion.div variants={itemVariants} className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm relative overflow-hidden group">
               <div className="absolute -right-6 -top-6 w-24 h-24 bg-blue-50 rounded-full opacity-20 blur-2xl group-hover:scale-150 transition-transform duration-500" />
               <div className="flex items-center justify-between mb-2">
                 <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Ingresos Totales (Período)</span>
@@ -252,9 +271,9 @@ export default function ReportsPage() {
               </div>
               <div className="text-2xl font-bold text-slate-900">$ {totalEarnings.toLocaleString('es-CO')}</div>
               <p className="text-xs text-slate-500 mt-1">{sales.length} transacciones exitosas</p>
-            </div>
+            </motion.div>
 
-            <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm relative overflow-hidden group">
+            <motion.div variants={itemVariants} className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm relative overflow-hidden group">
               <div className="absolute -right-6 -top-6 w-24 h-24 bg-emerald-50 rounded-full opacity-20 blur-2xl group-hover:scale-150 transition-transform duration-500" />
               <div className="flex items-center justify-between mb-2">
                 <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Artículos Vendidos</span>
@@ -262,9 +281,9 @@ export default function ReportsPage() {
               </div>
               <div className="text-2xl font-bold text-slate-900">{totalItems} Unidades</div>
               <p className="text-xs text-slate-500 mt-1">Salida total de inventario</p>
-            </div>
+            </motion.div>
 
-            <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm relative overflow-hidden group">
+            <motion.div variants={itemVariants} className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm relative overflow-hidden group">
               <div className="absolute -right-6 -top-6 w-24 h-24 bg-indigo-50 rounded-full opacity-20 blur-2xl group-hover:scale-150 transition-transform duration-500" />
               <div className="flex items-center justify-between mb-2">
                 <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Ticket Promedio</span>
@@ -274,8 +293,8 @@ export default function ReportsPage() {
                 $ {sales.length > 0 ? (totalEarnings / sales.length).toLocaleString('es-CO') : 0}
               </div>
               <p className="text-xs text-slate-500 mt-1">Gasto por cliente</p>
-            </div>
-          </div>
+            </motion.div>
+          </motion.div>
           
           {/* Main Chart Section (Trend) */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -445,9 +464,9 @@ export default function ReportsPage() {
                       <th className="px-6 py-4 font-semibold text-center">Estado</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-50">
+                  <motion.tbody variants={tableContainerVariants} initial="hidden" animate="show" className="divide-y divide-slate-50">
                     {paginatedSales.map((sale) => (
-                      <tr key={sale.id} className="hover:bg-slate-50/50 transition-colors">
+                      <motion.tr variants={rowVariants} key={sale.id} className="hover:bg-slate-50/50 transition-colors">
                         <td className="px-6 py-4 text-slate-500">
                           <div className="text-slate-900 font-medium">{new Date(sale.date).toLocaleDateString()}</div>
                           <div className="text-xs">{new Date(sale.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
@@ -475,9 +494,9 @@ export default function ReportsPage() {
                             {sale.status}
                           </span>
                         </td>
-                      </tr>
+                      </motion.tr>
                     ))}
-                  </tbody>
+                  </motion.tbody>
                   <tfoot className="bg-slate-50/50 print:bg-white border-t border-slate-100">
                     <tr>
                       <td colSpan={4} className="px-6 py-4 text-sm font-bold text-slate-900 text-right uppercase tracking-[2px]">TOTAL MOSTRADO (FILTRADO)</td>

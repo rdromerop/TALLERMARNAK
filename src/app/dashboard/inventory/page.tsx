@@ -3,6 +3,16 @@
 import { useState, useEffect } from 'react';
 import { Plus, Search, AlertTriangle, Package2, X, Tags, Loader2, Edit2, Trash2, ArrowUpDown, ChevronLeft, ChevronRight, Settings2, History, Clock } from 'lucide-react';
 import { getInventory, addInventoryItem, updateInventoryItem, deleteInventoryItem, adjustInventoryStock, getInventoryLogs } from '@/supabase/functions';
+import { motion } from 'framer-motion';
+
+const tableContainerVariants = {
+  hidden: { opacity: 0 },
+  show: { opacity: 1, transition: { staggerChildren: 0.05 } }
+};
+const rowVariants = {
+  hidden: { opacity: 0, x: -20 },
+  show: { opacity: 1, x: 0, transition: { type: "spring", stiffness: 300, damping: 24 } }
+};
 
 export default function InventoryPage() {
   const [inventory, setInventory] = useState<any[]>([]);
@@ -246,7 +256,7 @@ export default function InventoryPage() {
   const outOfStockItems = inventory.filter(item => item.stock <= 0).length;
 
   return (
-    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
          <div>
           <h1 className="text-3xl font-bold tracking-tight text-slate-900">Gestión de Inventario</h1>
@@ -369,7 +379,7 @@ export default function InventoryPage() {
                 <th className="px-6 py-4 font-semibold tracking-wider text-right">Acciones</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <motion.tbody variants={tableContainerVariants} initial="hidden" animate="show" className="divide-y divide-slate-100">
               {isLoading ? (
                 <tr>
                    <td colSpan={6} className="px-6 py-12 text-center text-slate-400">
@@ -388,7 +398,7 @@ export default function InventoryPage() {
                   const isOutOfStock = Number(item.stock) <= 0;
                   const isLowStock = Number(item.stock) <= 2 && !isOutOfStock;
                   return (
-                    <tr key={item.id} className={`hover:bg-slate-50/50 transition-colors group ${isOutOfStock ? 'bg-rose-50/20' : isLowStock ? 'bg-amber-50/20' : ''}`}>
+                    <motion.tr variants={rowVariants} key={item.id} className={`hover:bg-slate-50/50 transition-colors group ${isOutOfStock ? 'bg-rose-50/20' : isLowStock ? 'bg-amber-50/20' : ''}`}>
                       <td className="px-6 py-4 font-medium text-slate-900">{item.name}</td>
                       <td className="px-6 py-4 text-slate-500 text-xs font-mono">{item.sku || 'N/A'}</td>
                       <td className="px-6 py-4 text-slate-600"><span className="bg-slate-100 text-slate-600 px-2 py-1 rounded-md text-xs border border-slate-200">{item.category}</span></td>
@@ -440,11 +450,11 @@ export default function InventoryPage() {
                           </button>
                         </div>
                       </td>
-                    </tr>
+                    </motion.tr>
                   );
                 })
               )}
-            </tbody>
+            </motion.tbody>
           </table>
         </div>
         
