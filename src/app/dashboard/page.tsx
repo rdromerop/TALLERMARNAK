@@ -180,7 +180,7 @@ export default function DashboardPage() {
           iconColor="text-amber-600"
         />
         <MetricCard
-          title="Valor del Inventario"
+          title="Costo de Inventario"
           value={`$ ${metrics.inventoryValue.toLocaleString('es-CO')}`}
           icon={Package}
           iconBg="bg-indigo-100"
