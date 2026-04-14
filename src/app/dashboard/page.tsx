@@ -85,11 +85,11 @@ export default function DashboardPage() {
       const stockAlerts = lowStockItems.length;
 
       let inventoryValue = 0;
-      console.log("DEBUG: Inventario obtenido de DB:", inventory);
       inventory.forEach((item: any) => {
-        inventoryValue += Number(item.cost_price || 0);
+        const cost = Number(item.cost_price || 0);
+        const qty  = Number(item.stock || 0);
+        inventoryValue += cost * qty;
       });
-      console.log("DEBUG: Suma de costos de todos los productos (sin stock):", inventoryValue);
 
       // Mechanics / Repairs Today
       let repairsCountToday = 0;
