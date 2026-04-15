@@ -6,7 +6,8 @@ export async function getInventory() {
   const { data, error } = await supabase
     .from('inventory')
     .select('*')
-    .order('name', { ascending: true });
+    .order('name', { ascending: true })
+    .limit(10000);
   if (error) throw error;
   return data;
 }
