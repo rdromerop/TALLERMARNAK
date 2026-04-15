@@ -3,13 +3,41 @@ import { createClient } from '@/utils/supabase/client';
 // --- Inventory Functions ---
 export async function getInventory() {
   const supabase = createClient();
-  const { data, error } = await supabase
-    .from('inventory')
-    .select('*')
-    .order('name', { ascending: true })
-    .limit(10000);
-  if (error) throw error;
-  return data;
+  let allData = [];
+  let from = 0;
+  let to = 999;
+  const chunkSize = 1000;
+  let finished = false;
+
+  while (!finished) {
+    const { data, error } = await supabase
+      .from('inventory')
+      .select('*')
+      .order('name', { ascending: true })
+      .range(from, to);
+
+    if (error) throw error;
+    
+    if (data && data.length > 0) {
+      allData = [...allData, ...data];
+      if (data.length < chunkSize) {
+        finished = true;
+      } else {
+        from += chunkSize;
+        to += chunkSize;
+      }
+    } else {
+      finished = true;
+    }
+    
+    // Safety break to prevent infinite loops if something goes wrong
+    if (allData.length >= 20000) {
+      console.warn('Inventory fetch reached safety limit of 20,000 items.');
+      finished = true;
+    }
+  }
+
+  return allData;
 }
 
 export async function addInventoryItem(item) {

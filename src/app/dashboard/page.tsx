@@ -35,6 +35,27 @@ export default function DashboardPage() {
     fetchMetrics();
   }, []);
 
+  // Auto-reset daily metrics at midnight (12:00 AM)
+  useEffect(() => {
+    const scheduleReset = () => {
+      const now = new Date();
+      const midnight = new Date(now);
+      midnight.setHours(24, 0, 0, 0); // Next midnight
+      const msUntilMidnight = midnight.getTime() - now.getTime();
+
+      return setTimeout(() => {
+        console.log('[Marnak] Midnight reset — refreshing dashboard metrics...');
+        fetchMetrics();
+        // Schedule the next midnight reset
+        const nextTimer = scheduleReset();
+        return () => clearTimeout(nextTimer);
+      }, msUntilMidnight);
+    };
+
+    const timer = scheduleReset();
+    return () => clearTimeout(timer);
+  }, []);
+
   async function fetchMetrics() {
     try {
       setIsLoading(true);
