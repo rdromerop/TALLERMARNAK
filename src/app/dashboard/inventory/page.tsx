@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Plus, Search, AlertTriangle, Package2, X, Tags, Loader2, Edit2, Trash2, ArrowUpDown, ChevronLeft, ChevronRight, Settings2, History, Clock } from 'lucide-react';
+import { Plus, Search, AlertTriangle, Package2, X, Tags, Loader2, Edit2, Trash2, ArrowUpDown, ChevronLeft, ChevronRight, Settings2, History, Clock, PlusSquare } from 'lucide-react';
 import { getInventory, addInventoryItem, updateInventoryItem, deleteInventoryItem, adjustInventoryStock, getInventoryLogs } from '@/supabase/functions';
 import { motion } from 'framer-motion';
 
@@ -46,6 +46,12 @@ export default function InventoryPage() {
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const [inventoryLogs, setInventoryLogs] = useState<any[]>([]);
   const [isLogsLoading, setIsLogsLoading] = useState(false);
+
+  // Reinforce State
+  const [isReinforceModalOpen, setIsReinforceModalOpen] = useState(false);
+  const [reinforceSearch, setReinforceSearch] = useState('');
+  const [selectedReinforceItem, setSelectedReinforceItem] = useState<any>(null);
+  const [reinforceQuantity, setReinforceQuantity] = useState(1);
 
   useEffect(() => {
     fetchInventory();
@@ -136,6 +142,35 @@ export default function InventoryPage() {
       } else {
         alert('Error guardando: ' + (error.message || JSON.stringify(error)));
       }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleReinforceSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (isSubmitting || !selectedReinforceItem) return;
+
+    try {
+      setIsSubmitting(true);
+      const newStock = selectedReinforceItem.stock + Number(reinforceQuantity);
+      
+      await adjustInventoryStock(
+        selectedReinforceItem.id, 
+        newStock, 
+        'Ingreso de Proveedor', 
+        selectedReinforceItem.name, 
+        Number(reinforceQuantity)
+      );
+      
+      setIsReinforceModalOpen(false);
+      setSelectedReinforceItem(null);
+      setReinforceSearch('');
+      setReinforceQuantity(1);
+      fetchInventory();
+    } catch (error) {
+      console.error('Error reinforcing stock:', error);
+      alert('Hubo un error al reforzar el inventario.');
     } finally {
       setIsSubmitting(false);
     }
@@ -269,6 +304,14 @@ export default function InventoryPage() {
           >
             <History className="w-4 h-4" />
             Ver Historial
+          </button>
+          <button 
+            onClick={() => setIsReinforceModalOpen(true)}
+            className="inline-flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-xl font-medium hover:bg-emerald-700 transition-all shadow-sm flex-1 sm:flex-none justify-center"
+          >
+            <PlusSquare className="w-4 h-4" />
+            <span className="hidden sm:inline">Reforzar Inventario</span>
+            <span className="sm:hidden">Reforzar</span>
           </button>
           <button 
             onClick={handleOpenAddModal}
@@ -699,6 +742,164 @@ export default function InventoryPage() {
                    Aplicar Ajuste de Stock
                  </button>
               </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Reinforce Inventory Modal */}
+      {isReinforceModalOpen && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between p-5 border-b border-slate-100 bg-emerald-50/30">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-emerald-100 text-emerald-600 rounded-xl">
+                  <PlusSquare className="w-5 h-5" />
+                </div>
+                <h2 className="text-xl font-bold text-slate-900">Reforzar Inventario</h2>
+              </div>
+              <button 
+                onClick={() => {
+                  setIsReinforceModalOpen(false);
+                  setSelectedReinforceItem(null);
+                  setReinforceSearch('');
+                }}
+                className="p-2 text-slate-400 hover:bg-slate-100 rounded-xl transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <form onSubmit={handleReinforceSubmit} className="p-6 space-y-6">
+              {!selectedReinforceItem ? (
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-slate-700">Buscar Producto</label>
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                      <input 
+                        type="text" 
+                        value={reinforceSearch}
+                        onChange={(e) => setReinforceSearch(e.target.value)}
+                        placeholder="Nombre o SKU..." 
+                        className="w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
+                        autoFocus
+                      />
+                    </div>
+                  </div>
+
+                  <div className="max-h-60 overflow-y-auto border border-slate-100 rounded-xl divide-y divide-slate-50 bg-slate-50/30">
+                    {reinforceSearch.length > 0 ? (
+                      inventory
+                        .filter(item => 
+                          normalizeText(item.name).includes(normalizeText(reinforceSearch)) || 
+                          (item.sku && normalizeText(item.sku).includes(normalizeText(reinforceSearch)))
+                        )
+                        .slice(0, 10)
+                        .map(item => (
+                          <button
+                            key={item.id}
+                            type="button"
+                            onClick={() => setSelectedReinforceItem(item)}
+                            className="w-full p-3 text-left hover:bg-white transition-colors flex justify-between items-center group"
+                          >
+                            <div>
+                              <p className="font-semibold text-slate-900 group-hover:text-emerald-600 transition-colors">{item.name}</p>
+                              <p className="text-xs text-slate-500 font-mono">{item.sku || 'Sin SKU'}</p>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-xs text-slate-400 uppercase font-bold tracking-wider">Stock Actual</p>
+                              <p className="font-bold text-slate-700">{item.stock}</p>
+                            </div>
+                          </button>
+                        ))
+                    ) : (
+                      <div className="p-8 text-center text-slate-400">
+                        <Package2 className="w-8 h-8 mx-auto mb-2 opacity-20" />
+                        <p className="text-sm">Escribe para buscar productos</p>
+                      </div>
+                    )}
+                    {reinforceSearch.length > 0 && inventory.filter(item => normalizeText(item.name).includes(normalizeText(reinforceSearch))).length === 0 && (
+                      <div className="p-8 text-center text-slate-400">
+                        <p className="text-sm">No se encontraron productos</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 relative group">
+                    <button 
+                      type="button"
+                      onClick={() => setSelectedReinforceItem(null)}
+                      className="absolute top-2 right-2 p-1 text-slate-400 hover:text-slate-600 opacity-0 group-hover:opacity-100 transition-opacity"
+                      title="Cambiar producto"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                    <p className="text-xs font-bold text-emerald-600 uppercase tracking-widest mb-1">Producto Seleccionado</p>
+                    <p className="text-lg font-bold text-slate-900">{selectedReinforceItem.name}</p>
+                    <div className="flex justify-between items-center mt-3 pt-3 border-t border-slate-200">
+                       <div>
+                          <p className="text-xs text-slate-500 uppercase">Stock Actual</p>
+                          <p className="text-xl font-black text-slate-700">{selectedReinforceItem.stock}</p>
+                       </div>
+                       <div className="text-right">
+                          <p className="text-xs text-slate-500 uppercase font-bold">Categoría</p>
+                          <span className="inline-block bg-slate-200 text-slate-700 px-2 py-0.5 rounded text-[10px] font-bold">{selectedReinforceItem.category}</span>
+                       </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <label className="block text-sm font-bold text-slate-700">¿Cuántas unidades ingresan?</label>
+                    <div className="flex items-center gap-4">
+                      <button 
+                        type="button" 
+                        onClick={() => setReinforceQuantity(q => Math.max(1, q - 1))}
+                        className="w-12 h-12 rounded-xl border-2 border-slate-200 flex items-center justify-center text-2xl font-bold text-slate-400 hover:border-emerald-500 hover:text-emerald-600 transition-all"
+                      >-</button>
+                      <input 
+                        type="number" 
+                        min="1"
+                        value={reinforceQuantity}
+                        onChange={(e) => setReinforceQuantity(Number(e.target.value))}
+                        className="flex-1 text-center py-3 bg-white border-2 border-slate-200 rounded-xl font-black text-2xl focus:outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 transition-all shadow-inner"
+                        required
+                        autoFocus
+                      />
+                      <button 
+                        type="button" 
+                        onClick={() => setReinforceQuantity(q => q + 1)}
+                        className="w-12 h-12 rounded-xl border-2 border-slate-200 flex items-center justify-center text-2xl font-bold text-slate-400 hover:border-emerald-500 hover:text-emerald-600 transition-all"
+                      >+</button>
+                    </div>
+                  </div>
+
+                  <div className="bg-emerald-50 border border-emerald-100 p-4 rounded-xl flex justify-between items-center">
+                    <span className="text-emerald-700 font-medium">Nuevo Stock Total:</span>
+                    <span className="text-2xl font-black text-emerald-700">{selectedReinforceItem.stock + reinforceQuantity}</span>
+                  </div>
+
+                  <div className="flex gap-3 pt-2">
+                    <button 
+                      type="button"
+                      onClick={() => setSelectedReinforceItem(null)}
+                      className="flex-1 py-3 px-4 text-slate-600 font-bold hover:bg-slate-100 rounded-xl transition-colors"
+                    >
+                      Atrás
+                    </button>
+                    <button 
+                      type="submit"
+                      disabled={isSubmitting || reinforceQuantity <= 0}
+                      className="flex-[2] py-3 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold shadow-lg shadow-emerald-200 transition-all active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-50"
+                    >
+                      {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <PlusSquare className="w-5 h-5" />}
+                      {isSubmitting ? 'Guardando...' : 'Reforzar Stock'}
+                    </button>
+                  </div>
+                </div>
+              )}
             </form>
           </div>
         </div>
