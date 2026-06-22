@@ -112,14 +112,14 @@ export default function SalesPage() {
           item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
         );
       }
-      return [...prev, { 
+      return [{ 
         id: product.id, 
         name: product.name, 
         price: product.price,
         cost_price: product.cost_price || 0,
         quantity: 1,
         stock: product.stock
-      }];
+      }, ...prev];
     });
     setIsModalOpen(false);
   };

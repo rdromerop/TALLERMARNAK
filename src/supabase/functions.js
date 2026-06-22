@@ -353,3 +353,12 @@ export async function deleteMechanic(id) {
     .eq('id', id);
   if (error) throw error;
 }
+
+export async function deleteRepair(id) {
+  const supabase = createClient();
+  const { error } = await supabase
+    .from('repairs')
+    .delete()
+    .eq('id', id);
+  if (error) throw error;
+}

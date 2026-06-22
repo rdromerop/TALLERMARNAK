@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Plus, Clock, Wrench, UserPlus, FileText, CheckCircle2, User, X, Briefcase, Edit2, Trash2, AlertTriangle, Loader2, Search, Percent, Filter, Activity } from 'lucide-react';
-import { getMechanics, addMechanic, updateMechanic, deleteMechanic, addRepair, updateRepairStatus } from '@/supabase/functions';
+import { getMechanics, addMechanic, updateMechanic, deleteMechanic, addRepair, updateRepairStatus, deleteRepair } from '@/supabase/functions';
 
 // Interfaces for our state
 interface MechanicJob {
@@ -217,6 +217,20 @@ export default function RepairsPage() {
     }
   };
 
+  const handleDeleteJob = async (jobId: string) => {
+    if (!confirm('¿Estás seguro de que deseas eliminar este trabajo?')) return;
+    try {
+      setIsActionLoading(true);
+      await deleteRepair(jobId);
+      fetchData();
+    } catch (error) {
+       console.error('Error deleting job:', error);
+       alert('Error al eliminar el trabajo');
+    } finally {
+       setIsActionLoading(false);
+    }
+  };
+
   const normalizeText = (text: string) => 
     text.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 
@@ -409,19 +423,28 @@ export default function RepairsPage() {
                               $ {job.cost.toLocaleString('es-CO')}
                             </td>
                             <td className="px-6 py-4 text-center">
-                              {job.status === 'Pendiente' ? (
-                                 <button 
-                                    onClick={() => navigateJobStatus(job.id, 'Completado')}
-                                    title="Marcar como Completado"
-                                    className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-bold rounded shadow-sm transition-all bg-amber-100 text-amber-700 border border-amber-200 hover:bg-emerald-100 hover:text-emerald-700 hover:border-emerald-200"
-                                 >
-                                    <Activity className="w-3.5 h-3.5" /> Pendiente
-                                 </button>
-                              ) : (
-                                 <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-bold rounded bg-slate-100 text-slate-500">
-                                    <CheckCircle2 className="w-3.5 h-3.5" /> Completado
-                                 </span>
-                              )}
+                              <div className="flex items-center justify-center gap-2">
+                                {job.status === 'Pendiente' ? (
+                                   <button 
+                                      onClick={() => navigateJobStatus(job.id, 'Completado')}
+                                      title="Marcar como Completado"
+                                      className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-bold rounded shadow-sm transition-all bg-amber-100 text-amber-700 border border-amber-200 hover:bg-emerald-100 hover:text-emerald-700 hover:border-emerald-200"
+                                   >
+                                      <Activity className="w-3.5 h-3.5" /> Pendiente
+                                   </button>
+                                ) : (
+                                   <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-bold rounded bg-slate-100 text-slate-500">
+                                      <CheckCircle2 className="w-3.5 h-3.5" /> Completado
+                                   </span>
+                                )}
+                                <button
+                                  onClick={() => handleDeleteJob(job.id)}
+                                  title="Eliminar Trabajo"
+                                  className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded transition-colors"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
                             </td>
                           </tr>
                         ))}

@@ -17,6 +17,22 @@ const containerVariants = {
   }
 };
 
+const getColombiaDateParts = (date: Date) => {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Bogota',
+    year: 'numeric', month: '2-digit', day: '2-digit'
+  }).formatToParts(date);
+  const year = parts.find(p => p.type === 'year')?.value || '';
+  const month = parts.find(p => p.type === 'month')?.value || '';
+  const day = parts.find(p => p.type === 'day')?.value || '';
+  return {
+    year: parseInt(year, 10),
+    month: parseInt(month, 10) - 1, // 0-indexed like JS dates
+    day: parseInt(day, 10),
+    dateStr: `${year}-${month}-${day}`
+  };
+};
+
 export default function DashboardPage() {
   const [metrics, setMetrics] = useState({
     salesToday: 0,
@@ -35,25 +51,20 @@ export default function DashboardPage() {
     fetchMetrics();
   }, []);
 
-  // Auto-reset daily metrics at midnight (12:00 AM)
+  // Auto-reset daily metrics at midnight Colombia Time
   useEffect(() => {
-    const scheduleReset = () => {
-      const now = new Date();
-      const midnight = new Date(now);
-      midnight.setHours(24, 0, 0, 0); // Next midnight
-      const msUntilMidnight = midnight.getTime() - now.getTime();
+    let currentDay = getColombiaDateParts(new Date()).dateStr;
 
-      return setTimeout(() => {
-        console.log('[Marnak] Midnight reset — refreshing dashboard metrics...');
+    const intervalId = setInterval(() => {
+      const newDay = getColombiaDateParts(new Date()).dateStr;
+      if (newDay !== currentDay) {
+        console.log('[Marnak] Colombia midnight reset — refreshing dashboard metrics...');
+        currentDay = newDay;
         fetchMetrics();
-        // Schedule the next midnight reset
-        const nextTimer = scheduleReset();
-        return () => clearTimeout(nextTimer);
-      }, msUntilMidnight);
-    };
+      }
+    }, 60000); // Check every minute
 
-    const timer = scheduleReset();
-    return () => clearTimeout(timer);
+    return () => clearInterval(intervalId);
   }, []);
 
   async function fetchMetrics() {
@@ -67,9 +78,10 @@ export default function DashboardPage() {
       ]);
 
       const now = new Date();
-      const todayStr = now.toISOString().split('T')[0];
-      const currentMonth = now.getMonth();
-      const currentYear = now.getFullYear();
+      const colNow = getColombiaDateParts(now);
+      const todayStr = colNow.dateStr;
+      const currentMonth = colNow.month;
+      const currentYear = colNow.year;
 
       // Sales Calculations
       let salesToday = 0;
@@ -78,15 +90,15 @@ export default function DashboardPage() {
       let profitToday = 0;
       sales.forEach((sale: any) => {
         const saleDate = new Date(sale.date);
-        const saleDateStr = saleDate.toISOString().split('T')[0];
+        const colSale = getColombiaDateParts(saleDate);
         const saleProfit = sale.sale_items?.reduce((sum: number, item: any) => sum + Number(item.profit || 0), 0) || 0;
         
-        if (saleDateStr === todayStr) {
+        if (colSale.dateStr === todayStr) {
           salesToday += Number(sale.total_amount);
           profitToday += saleProfit;
         }
         
-        if (saleDate.getMonth() === currentMonth && saleDate.getFullYear() === currentYear) {
+        if (colSale.month === currentMonth && colSale.year === currentYear) {
           salesMonth += Number(sale.total_amount);
           profitMonth += saleProfit;
         }
@@ -95,9 +107,13 @@ export default function DashboardPage() {
       // Expenses Calculations
       let expensesMonth = 0;
       expenses.forEach((expense: any) => {
-        const expDate = new Date(expense.date); // expense.date is 'YYYY-MM-DD'
-        if (expDate.getUTCMonth() === currentMonth && expDate.getUTCFullYear() === currentYear) {
-          expensesMonth += Number(expense.amount);
+        const parts = (expense.date || '').split('-');
+        if (parts.length === 3) {
+          const expYear = parseInt(parts[0], 10);
+          const expMonth = parseInt(parts[1], 10) - 1;
+          if (expMonth === currentMonth && expYear === currentYear) {
+            expensesMonth += Number(expense.amount);
+          }
         }
       });
 
@@ -117,7 +133,7 @@ export default function DashboardPage() {
       mechanics.forEach((mech: any) => {
         const todayRepairs = (mech.repairs || []).filter((r: any) => {
           if (!r.created_at) return false;
-          const rDateStr = new Date(r.created_at).toISOString().split('T')[0];
+          const rDateStr = getColombiaDateParts(new Date(r.created_at)).dateStr;
           return rDateStr === todayStr;
         });
         repairsCountToday += todayRepairs.length;
