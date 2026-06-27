@@ -362,3 +362,86 @@ export async function deleteRepair(id) {
     .eq('id', id);
   if (error) throw error;
 }
+
+// --- Credits Functions ---
+export async function getCredits() {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from('credits')
+    .select('*')
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return data;
+}
+
+export async function addCredit(credit) {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from('credits')
+    .insert([credit])
+    .select();
+  if (error) throw error;
+  return data[0];
+}
+
+export async function updateCreditStatus(id, status) {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from('credits')
+    .update({ status })
+    .eq('id', id)
+    .select();
+  if (error) throw error;
+  return data[0];
+}
+
+export async function getCreditPayments(creditId) {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from('credit_payments')
+    .select('*')
+    .eq('credit_id', creditId)
+    .order('created_at', { ascending: true });
+  if (error) throw error;
+  return data;
+}
+
+export async function addCreditPayment(creditId, amount, paymentMethod, currentPaidAmount, totalAmount) {
+  const supabase = createClient();
+  
+  // 1. Insert payment record
+  const { error: paymentError } = await supabase
+    .from('credit_payments')
+    .insert([{
+      credit_id: creditId,
+      amount: amount,
+      payment_method: paymentMethod
+    }]);
+    
+  if (paymentError) throw paymentError;
+
+  // 2. Update credit paid_amount and status if fully paid
+  const newPaidAmount = currentPaidAmount + amount;
+  const newStatus = newPaidAmount >= totalAmount ? 'Pagado' : 'Pendiente';
+  
+  const { data, error: updateError } = await supabase
+    .from('credits')
+    .update({ 
+      paid_amount: newPaidAmount,
+      status: newStatus 
+    })
+    .eq('id', creditId)
+    .select();
+    
+  if (updateError) throw updateError;
+  return data[0];
+}
+
+export async function deleteCredit(id) {
+  const supabase = createClient();
+  const { error } = await supabase
+    .from('credits')
+    .delete()
+    .eq('id', id);
+  if (error) throw error;
+}

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { LayoutDashboard, ShoppingCart, Wrench, Package, Receipt, PieChart, X } from 'lucide-react';
+import { LayoutDashboard, ShoppingCart, Wrench, Package, Receipt, PieChart, X, Wallet } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { useNav } from '@/context/NavContext';
 
@@ -12,6 +12,7 @@ const navItems = [
   { name: 'Mecánicos', href: '/dashboard/repairs', icon: Wrench },
   { name: 'Inventario', href: '/dashboard/inventory', icon: Package },
   { name: 'Gastos', href: '/dashboard/expenses', icon: Receipt },
+  { name: 'Créditos', href: '/dashboard/credits', icon: Wallet },
   { name: 'Reportes', href: '/dashboard/reports', icon: PieChart },
 ];
 
